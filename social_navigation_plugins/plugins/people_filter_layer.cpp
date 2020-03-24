@@ -1,40 +1,19 @@
-/*********************************************************************
- *
- * Software License Agreement (BSD License)
- *
- *  Copyright (c) 2008, 2013, Willow Garage, Inc.
- *  All rights reserved.
- *
- *  Redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions
- *  are met:
- *
- *   * Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above
- *     copyright notice, this list of conditions and the following
- *     disclaimer in the documentation and/or other materials provided
- *     with the distribution.
- *   * Neither the name of Willow Garage, Inc. nor the names of its
- *     contributors may be used to endorse or promote products derived
- *     from this software without specific prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- *  POSSIBILITY OF SUCH DAMAGE.
- *
- * Author: Jonatan Gines
- *
- *********************************************************************/
+// Copyright 2019 Intelligent Robotics Lab
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Author: jginesclavero
+
 #include "social_navigation_plugins/people_filter_layer.hpp"
 
 #include <algorithm>
@@ -65,22 +44,25 @@ PeopleFilterLayer::onInitialize()
     "footprint_clearing_enabled",
     rclcpp::ParameterValue(true));
   declareParameter("tf_prefix", rclcpp::ParameterValue("agent_"));
-
+  declareParameter("agent_radius", rclcpp::ParameterValue(0.32));
   node_->get_parameter(name_ + "." + "enabled", enabled_);
-  node_->get_parameter(name_ + "." + "footprint_clearing_enabled", footprint_clearing_enabled_);
+  node_->get_parameter(
+    name_ + "." + "footprint_clearing_enabled",
+    footprint_clearing_enabled_);
   node_->get_parameter(name_ + "." + "tf_prefix", tf_prefix_);
-  
+  node_->get_parameter(name_ + "." + "agent_radius", agent_radius_);
+
   global_frame_ = layered_costmap_->getGlobalFrameID();
   rolling_window_ = layered_costmap_->isRolling();
-
-  RCLCPP_INFO(node_->get_logger(), "Subscribed to TF Agent with prefix [%s] in global frame [%s]", tf_prefix_.c_str(), global_frame_.c_str());
-  
-  private_node_ = rclcpp::Node::make_shared("people_filter_layer_sub");
   default_value_ = NO_INFORMATION;
+
+  RCLCPP_INFO(node_->get_logger(), 
+    "Subscribed to TF Agent with prefix [%s] in global frame [%s]", 
+    tf_prefix_.c_str(), global_frame_.c_str());
+  private_node_ = rclcpp::Node::make_shared("people_filter_layer_sub");
 
   PeopleFilterLayer::matchSize();
   current_ = true;
-
 
   tf_sub_ = private_node_->create_subscription<tf2_msgs::msg::TFMessage>(
       "tf", rclcpp::SensorDataQoS(),
@@ -109,18 +91,16 @@ PeopleFilterLayer::tfCallback(const tf2_msgs::msg::TFMessage::SharedPtr msg)
 
 void
 PeopleFilterLayer::updateBounds(
-  double robot_x, double robot_y, double robot_yaw, double * min_x,
-  double * min_y, double * max_x, double * max_y)
+  double robot_x, double robot_y, double robot_yaw, 
+  double * min_x, double * min_y, double * max_x, double * max_y)
 {
   if (rolling_window_) {
     updateOrigin(robot_x - getSizeInMetersX() / 2, robot_y - getSizeInMetersY() / 2);
   }
 
-  if (!enabled_) {
-    return;
-  }
-  useExtraBounds(min_x, min_y, max_x, max_y);
+  if (!enabled_) {return;}
 
+  useExtraBounds(min_x, min_y, max_x, max_y);
   bool current = true;
   std::vector<tf2::Transform> agents;
 
@@ -138,13 +118,12 @@ PeopleFilterLayer::updateBounds(
       agent.getOrigin().x(),
       agent.getOrigin().y(),
       agent.getRotation().getAngle(),
-      makeFootprintFromRadius(0.32),
+      makeFootprintFromRadius(agent_radius_),
       agent_footprint_);
     setConvexPolygonCost(agent_footprint_, nav2_costmap_2d::FREE_SPACE);
     
-    for (unsigned int i = 0; i < agent_footprint_.size(); i++) {
+    for (unsigned int i = 0; i < agent_footprint_.size(); i++) 
       touch(agent_footprint_[i].x, agent_footprint_[i].y, min_x, min_y, max_x, max_y);
-    }
   }
 
   updateFootprint(robot_x, robot_y, robot_yaw, min_x, min_y, max_x, max_y);
@@ -154,16 +133,13 @@ PeopleFilterLayer::updateBounds(
 void
 PeopleFilterLayer::updateFootprint(
   double robot_x, double robot_y, double robot_yaw,
-  double * min_x, double * min_y,
-  double * max_x,
-  double * max_y)
+  double * min_x, double * min_y, double * max_x, double * max_y)
 {
   if (!footprint_clearing_enabled_) {return;}
   transformFootprint(robot_x, robot_y, robot_yaw, getFootprint(), transformed_footprint_);
 
-  for (unsigned int i = 0; i < transformed_footprint_.size(); i++) {
+  for (unsigned int i = 0; i < transformed_footprint_.size(); i++)
     touch(transformed_footprint_[i].x, transformed_footprint_[i].y, min_x, min_y, max_x, max_y);
-  }
 }
 
 void
@@ -172,13 +148,10 @@ PeopleFilterLayer::updateCosts(
   int max_i,
   int max_j)
 {
-  if (!enabled_) {
-    return;
-  }
+  if (!enabled_) {return;}
 
-  if (footprint_clearing_enabled_) {
+  if (footprint_clearing_enabled_)
     setConvexPolygonCost(transformed_footprint_, nav2_costmap_2d::FREE_SPACE);
-  }
 
   updateWithOverwrite(master_grid, min_i, min_j, max_i, max_j);
 }
@@ -209,43 +182,16 @@ PeopleFilterLayer::getAgentTFs(std::vector<tf2::Transform> & agents) const
 }
 
 void
-PeopleFilterLayer::activate()
-{
-  //// if we're stopped we need to re-subscribe to topics
-  //for (unsigned int i = 0; i < observation_subscribers_.size(); ++i) {
-  //  if (observation_subscribers_[i] != NULL) {
-  //    observation_subscribers_[i]->subscribe();
-  //  }
-  //}
-  //resetBuffersLastUpdated();
-}
+PeopleFilterLayer::activate(){}
 
 void
-PeopleFilterLayer::deactivate()
-{
-  //for (unsigned int i = 0; i < observation_subscribers_.size(); ++i) {
-  //  if (observation_subscribers_[i] != NULL) {
-  //    observation_subscribers_[i]->unsubscribe();
-  //  }
-  //}
-}
+PeopleFilterLayer::deactivate(){}
 
 void
 PeopleFilterLayer::reset()
 {
   resetMaps();
-  //resetBuffersLastUpdated();
   current_ = true;
 }
-
-//void
-//ObstacleLayer::resetBuffersLastUpdated()
-//{
-//  for (unsigned int i = 0; i < observation_buffers_.size(); ++i) {
-//    if (observation_buffers_[i]) {
-//      observation_buffers_[i]->resetLastUpdated();
-//    }
-//  }
-//}
 
 }  // namespace nav2_costmap_2d
