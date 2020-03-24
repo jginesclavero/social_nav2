@@ -1,0 +1,8 @@
+<class_libraries>
+  <library path="social_navigation_plugins">
+    <class name="social_navigation_plugins/PeopleFilterLayer" type="nav2_costmap_2d::PeopleFilterLayer"  base_class_type="nav2_costmap_2d::Layer">
+      <description>Layer to remove people from the costmap, based on their TF.</description>
+    </class>
+  </library>
+</class_libraries>
+
