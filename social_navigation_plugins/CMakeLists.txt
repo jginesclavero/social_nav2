@@ -51,7 +51,7 @@ set(library_name social_navigation_plugins)
 add_definitions(${EIGEN3_DEFINITIONS})
 
 add_library(${library_name} SHARED
-  plugins/people_filter_layer.cpp
+  plugins/social_layer.cpp
 )
 ament_target_dependencies(${library_name}
   ${dependencies}
@@ -76,16 +76,16 @@ install(DIRECTORY include/
   DESTINATION include/
 )
 
-#if(BUILD_TESTING)
-#  find_package(ament_lint_auto REQUIRED)
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
 #  # the following line skips the linter which checks for copyrights
 #  set(ament_cmake_copyright_FOUND TRUE)
-#  set(ament_cmake_cpplint_FOUND TRUE)
-#  ament_lint_auto_find_test_dependencies()
+  set(ament_cmake_cpplint_FOUND TRUE)
+  ament_lint_auto_find_test_dependencies()
 #
 #  find_package(ament_cmake_gtest REQUIRED)
 #  add_subdirectory(test)
-#endif()
+endif()
 
 ament_export_include_directories(include)
 ament_export_libraries(${library_name})

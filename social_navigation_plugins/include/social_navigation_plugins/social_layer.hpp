@@ -14,8 +14,8 @@
 
 // Author: jginesclavero
 
-#ifndef SOCIAL_NAV_PLUGINS__PEOPLE_FILTER_LAYER_HPP_
-#define SOCIAL_NAV_PLUGINS__PEOPLE_FILTER_LAYER_HPP_
+#ifndef SOCIAL_NAV_PLUGINS__SOCIAL_LAYER_HPP_
+#define SOCIAL_NAV_PLUGINS__SOCIAL_LAYER_HPP_
 
 #include <memory>
 #include <string>
@@ -40,21 +40,19 @@
 #include "tf2_ros/transform_broadcaster.h"
 #include "tf2_ros/transform_listener.h"
 
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include "tf2_msgs/msg/tf_message.hpp"
 
 namespace nav2_costmap_2d
 {
 
-class PeopleFilterLayer : public CostmapLayer
+class SocialLayer : public CostmapLayer
 {
 public:
-  PeopleFilterLayer()
+  SocialLayer()
   {
     costmap_ = NULL;  // this is the unsigned char* member of parent class Costmap2D.
   }
 
-  virtual ~PeopleFilterLayer();
+  virtual ~SocialLayer();
   virtual void onInitialize();
   virtual void updateBounds(
     double robot_x, double robot_y, double robot_yaw, double * min_x,
@@ -76,21 +74,32 @@ public:
   void tfCallback(const tf2_msgs::msg::TFMessage::SharedPtr msg);
 
 protected:
-  
-  bool getAgentTFs(std::vector<tf2::Transform> & agents) const;
-
-  void updateFootprint(
-    double robot_x, double robot_y, double robot_yaw, double * min_x,
+  void doTouch(
+    tf2::Transform agent,
+    double * min_x,
     double * min_y,
     double * max_x,
     double * max_y);
+  bool getAgentTFs(std::vector<tf2::Transform> & agents) const;
+  void updateFootprint(
+    double robot_x, double robot_y, double robot_yaw, double * min_x,
+    double * min_y, double * max_x, double * max_y);
+  void getConvexPolygon(
+    const std::vector<geometry_msgs::msg::Point> & polygon,
+    std::vector<MapLocation> & polygon_cells);
 
+  void agentFilter(tf2::Transform agent, float r);
+  void setProxemics(
+    tf2::Transform agent, float r, float amplitude, float covar);
+  double gaussian(
+    double x, double y, double x0, double y0,
+    double A, double varx, double vary, double skew);
   rclcpp::Node::SharedPtr private_node_;
   std::vector<geometry_msgs::msg::Point> transformed_footprint_;
   std::vector<std::string> agent_ids_;
   rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr tf_sub_;
   std::string global_frame_;  ///< @brief The global frame for the costmap
-  bool footprint_clearing_enabled_, rolling_window_;
+  bool footprint_clearing_enabled_, rolling_window_, use_proxemics_;
   std::string tf_prefix_;
   float agent_radius_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
@@ -99,4 +108,4 @@ protected:
 
 }  // namespace nav2_costmap_2d
 
-#endif  // SOCIAL_NAV_PLUGINS__PEOPLE_FILTER_LAYER_HPP_
+#endif  // SOCIAL_NAV_PLUGINS__SOCIAL_LAYER_HPP_
