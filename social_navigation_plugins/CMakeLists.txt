@@ -51,7 +51,9 @@ set(library_name social_navigation_plugins)
 add_definitions(${EIGEN3_DEFINITIONS})
 
 add_library(${library_name} SHARED
+  src/geometry/geometry.cpp
   plugins/social_layer.cpp
+  plugins/people_filter_layer.cpp
 )
 ament_target_dependencies(${library_name}
   ${dependencies}

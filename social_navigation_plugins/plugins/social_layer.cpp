@@ -1,4 +1,4 @@
-// Copyright 2019 Intelligent Robotics Lab
+// Copyright 2020 Intelligent Robotics Lab
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -45,7 +45,9 @@ SocialLayer::onInitialize()
     "footprint_clearing_enabled",
     rclcpp::ParameterValue(true));
   declareParameter("tf_prefix", rclcpp::ParameterValue("agent_"));
-  declareParameter("agent_radius", rclcpp::ParameterValue(0.32));
+  declareParameter("intimate_z_radius", rclcpp::ParameterValue(0.32));
+  declareParameter("social_z_radius", rclcpp::ParameterValue(0.7));
+  declareParameter("orientation_info", rclcpp::ParameterValue(false));
   declareParameter("use_proxemics", rclcpp::ParameterValue(true));
 
   node_->get_parameter(name_ + "." + "enabled", enabled_);
@@ -53,13 +55,14 @@ SocialLayer::onInitialize()
     name_ + "." + "footprint_clearing_enabled",
     footprint_clearing_enabled_);
   node_->get_parameter(name_ + "." + "tf_prefix", tf_prefix_);
-  node_->get_parameter(name_ + "." + "agent_radius", agent_radius_);
+  node_->get_parameter(name_ + "." + "intimate_z_radius", intimate_z_radius_);
+  node_->get_parameter(name_ + "." + "social_z_radius", social_z_radius_);
+  node_->get_parameter(name_ + "." + "orientation_info", orientation_info_);
   node_->get_parameter(name_ + "." + "use_proxemics", use_proxemics_);
 
   global_frame_ = layered_costmap_->getGlobalFrameID();
   rolling_window_ = layered_costmap_->isRolling();
   default_value_ = NO_INFORMATION;
-
   RCLCPP_INFO(node_->get_logger(),
     "Subscribed to TF Agent with prefix [%s] in global frame [%s]",
     tf_prefix_.c_str(), global_frame_.c_str());
@@ -115,9 +118,9 @@ SocialLayer::updateBounds(
   current_ = current;
 
   for (auto agent : agents) {
-    agentFilter(agent, agent_radius_);
     if (use_proxemics_) {
-      setProxemics(agent, 0.6, 200.0, 0.07);
+      float covar = social_z_radius_ * 0.12 / 0.6;
+      setProxemics(agent, social_z_radius_, 260.0, covar);
     }
     doTouch(agent, min_x, min_y, max_x, max_y);
   }
@@ -162,9 +165,8 @@ SocialLayer::doTouch(
     agent.getOrigin().x(),
     agent.getOrigin().y(),
     agent.getRotation().getAngle(),
-    makeFootprintFromRadius(agent_radius_),
+    makeFootprintFromRadius(intimate_z_radius_),
     footprint);
-
   for (unsigned int i = 0; i < footprint.size(); i++) {
     touch(footprint[i].x, footprint[i].y, min_x, min_y, max_x, max_y);
   }
@@ -191,37 +193,57 @@ SocialLayer::getAgentTFs(std::vector<tf2::Transform> & agents) const
 }
 
 void
-SocialLayer::agentFilter(tf2::Transform agent, float r)
-{
-  std::vector<geometry_msgs::msg::Point> agent_footprint;
-  transformFootprint(
-    agent.getOrigin().x(),
-    agent.getOrigin().y(),
-    agent.getRotation().getAngle(),
-    makeFootprintFromRadius(r),
-    agent_footprint);
-  std::vector<MapLocation> polygon_cells;
-  getConvexPolygon(agent_footprint, polygon_cells);
-  for (unsigned int i = 0; i < polygon_cells.size(); ++i) {
-    unsigned int index = getIndex(polygon_cells[i].x, polygon_cells[i].y);
-    costmap_[index] = nav2_costmap_2d::FREE_SPACE;
-  }
-}
-
-void
 SocialLayer::setProxemics(
   tf2::Transform agent, float r, float amplitude, float covar)
 {
   std::vector<geometry_msgs::msg::Point> agent_footprint;
-  transformFootprint(
-    agent.getOrigin().x(),
-    agent.getOrigin().y(),
-    agent.getRotation().getAngle(),
-    makeFootprintFromRadius(r),
-    agent_footprint);
-
   std::vector<MapLocation> polygon_cells;
-  getConvexPolygon(agent_footprint, polygon_cells);
+
+  float proxemic_mod_angle = 2 * M_PI - M_PI / 4;
+
+  if (orientation_info_) {
+
+    // Proxemics for Scort
+    /*transformProxemicFootprint(
+      makeScortFootprint(r),
+      agent,
+      agent_footprint);*/
+
+    // Proxemics for Scort (one side)
+    /*transformProxemicFootprint(
+      makeCircleFromAngle(r, proxemic_mod_angle, 3 * M_PI / 5),
+      agent,
+      agent_footprint);*/
+
+    // Proxemics for Follow
+    /*
+    transformProxemicFootprint(
+      makeCircleFromAngle(r, proxemic_mod_angle, M_PI / 4 + M_PI),
+      agent,
+      agent_footprint);
+    */
+
+    // Proxemics for HRI
+  
+    transformProxemicFootprint(
+      makeCircleFromAngle(r, proxemic_mod_angle, M_PI / 6),
+      agent,
+      agent_footprint);
+
+  } else {
+    // Default proxemics
+    transformFootprint(
+      agent.getOrigin().x(),
+      agent.getOrigin().y(),
+      0.0,
+      makeCircleFromAngle(r, 2 * M_PI),
+      agent_footprint);
+  }
+
+  social_geometry::getPolygon(
+    layered_costmap_->getCostmap(),
+    agent_footprint,
+    polygon_cells);
 
   for (unsigned int i = 0; i < polygon_cells.size(); i++) {
     double ax, ay;
@@ -236,26 +258,10 @@ SocialLayer::setProxemics(
       covar,
       0);
     unsigned int index = getIndex(polygon_cells[i].x, polygon_cells[i].y);
+    if (a > 254.0) { a = 254.0;}
     unsigned char cvalue = (unsigned char) a;
     costmap_[index] = cvalue;
   }
-}
-
-void SocialLayer::getConvexPolygon(
-  const std::vector<geometry_msgs::msg::Point> & polygon,
-  std::vector<MapLocation> & polygon_cells)
-{
-  // we assume the polygon is given in the global_frame...
-  // we need to transform it to map coordinates
-  std::vector<MapLocation> map_polygon;
-  for (unsigned int i = 0; i < polygon.size(); ++i) {
-    MapLocation loc;
-    if (!worldToMap(polygon[i].x, polygon[i].y, loc.x, loc.y)) {continue;}
-    // Only push a cell if is inside the map
-    map_polygon.push_back(loc);
-  }
-  // get the cells that fill the polygon
-  convexFillCells(map_polygon, polygon_cells);
 }
 
 double
@@ -271,6 +277,101 @@ SocialLayer::gaussian(
   double f1 = pow(mx, 2.0) / (2.0 * varx),
     f2 = pow(my, 2.0) / (2.0 * vary);
   return A * exp(-(f1 + f2));
+}
+
+tf2::Vector3 
+SocialLayer::transformPoint(
+  const tf2::Vector3 & input_point, const tf2::Transform & transform)
+{
+  return  transform * input_point;
+}
+
+void
+SocialLayer::transformProxemicFootprint(
+  std::vector<geometry_msgs::msg::Point> input_points,
+  tf2::Transform tf,
+  std::vector<geometry_msgs::msg::Point> & transformed_proxemic,
+  float alpha_mod)
+{
+  tf2::Transform tf_ = tf;
+  tf2::Quaternion q_orig, q_rot, q_new;
+  q_rot.setRPY(alpha_mod, 0, 0);
+  q_new = q_rot * tf_.getRotation();  // Calculate the new orientation
+  q_new.normalize();
+  tf_.setRotation(q_new);
+
+  for (auto p : input_points) {
+    tf2::Vector3 p_obj(p.x, p.y, 0.0);
+    auto transform_p = transformPoint(p_obj, tf_);
+    geometry_msgs::msg::Point out_p;
+    out_p.x = transform_p.x();
+    out_p.y = transform_p.y();
+    transformed_proxemic.push_back(out_p);
+  }
+}
+
+std::vector<geometry_msgs::msg::Point> 
+SocialLayer::makeCircleFromAngle(float r, float alpha, float orientation)
+{
+  std::vector<geometry_msgs::msg::Point> points;
+
+  // Loop over 32 angles around a circle making a point each time
+  int N = 32;
+  int it = (int) round((N * alpha) / (2 * M_PI));
+  geometry_msgs::msg::Point pt;
+  for (int i = 0; i < it; ++i) {
+    double angle = i * 2 * M_PI / N + orientation;
+    pt.x = cos(angle) * r;
+    pt.y = sin(angle) * r;
+
+    points.push_back(pt);
+  }
+  
+  if (alpha < 2 * M_PI) {
+    pt.x = 0.0;
+    pt.y = 0.0;
+    points.push_back(pt);
+  }
+
+  pt.x = points[0].x;
+  pt.y = points[0].y;
+  points.push_back(pt);
+
+  return points;
+}
+
+std::vector<geometry_msgs::msg::Point> 
+SocialLayer::makeScortFootprint(float r)
+{
+  std::vector<geometry_msgs::msg::Point> points;
+  geometry_msgs::msg::Point pt;
+  pt.x = 0.0;
+  pt.y = 0.0;
+  points.push_back(pt);
+  float orientation = - M_PI / 4;
+  quarterFootprint(r, orientation, points);
+  orientation = orientation + M_PI;
+  quarterFootprint(r, orientation, points);
+  return points;
+}
+
+void
+SocialLayer::quarterFootprint(
+  float r, float orientation, std::vector<geometry_msgs::msg::Point> & points) {
+  // Loop over 32 angles around a circle making a point each time
+  int N = 32;
+  float alpha = M_PI / 2;
+  int it = (int) round((N * alpha) / (2 * M_PI));
+  geometry_msgs::msg::Point pt;
+  for (int i = 0; i < it; ++i) {
+    double angle = i * 2 * M_PI / N + orientation;
+    pt.x = cos(angle) * r;
+    pt.y = sin(angle) * r;
+    points.push_back(pt);
+  }
+  pt.x = points[0].x;
+  pt.y = points[0].y;
+  points.push_back(pt);
 }
 
 void
