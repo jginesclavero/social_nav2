@@ -111,8 +111,8 @@ SocialLayer::updateBounds(
   bool current = true;
 
   // get the transform from the agents
-  std::vector<tf2::Transform> agents;
-  current = current && getAgentTFs(agents);
+  std::map<std::string, Agent> agents;
+  current = current && getAgentMap(agents);
 
   // update the global current status
   current_ = current;
@@ -120,9 +120,9 @@ SocialLayer::updateBounds(
   for (auto agent : agents) {
     if (use_proxemics_) {
       float covar = social_z_radius_ * 0.12 / 0.6;
-      setProxemics(agent, social_z_radius_, 260.0, covar);
+      setProxemics(agent.second, social_z_radius_, 260.0, covar);
     }
-    doTouch(agent, min_x, min_y, max_x, max_y);
+    doTouch(agent.second.tf, min_x, min_y, max_x, max_y);
   }
 
   if (footprint_clearing_enabled_) {
@@ -173,7 +173,7 @@ SocialLayer::doTouch(
 }
 
 bool
-SocialLayer::getAgentTFs(std::vector<tf2::Transform> & agents) const
+SocialLayer::getAgentMap(std::map<std::string, Agent> & agents) const
 {
   geometry_msgs::msg::TransformStamped global2agent;
 
@@ -187,56 +187,63 @@ SocialLayer::getAgentTFs(std::vector<tf2::Transform> & agents) const
     }
     tf2::Transform global2agent_tf2;
     tf2::impl::Converter<true, false>::convert(global2agent.transform, global2agent_tf2);
-    agents.push_back(global2agent_tf2);
+    Agent a;
+    a.action = "none";
+    a.tf = global2agent_tf2;
+    agents.insert(std::pair<std::string, Agent>(id, a));
   }
   return true;
 }
 
 void
 SocialLayer::setProxemics(
-  tf2::Transform agent, float r, float amplitude, float covar)
+  Agent & agent, float r, float amplitude, float covar)
 {
   std::vector<geometry_msgs::msg::Point> agent_footprint;
   std::vector<MapLocation> polygon_cells;
+  double var_h, var_s, var_r;
+  
+  var_h = 0.5;
+  var_s = 0.5;
+  var_r = 0.5;
+  (void)covar;
+
+  tf2::Matrix3x3 m(agent.tf.getRotation());
+  double roll, pitch, yaw;
+  if (orientation_info_) {
+    m.getRPY(roll, pitch, yaw);
+  } else {
+    yaw = 0.0;
+  }
 
   float proxemic_mod_angle = 2 * M_PI - M_PI / 4;
 
-  if (orientation_info_) {
-
-    // Proxemics for Scort
-    /*transformProxemicFootprint(
-      makeScortFootprint(r),
-      agent,
-      agent_footprint);*/
-
-    // Proxemics for Scort (one side)
-    /*transformProxemicFootprint(
-      makeCircleFromAngle(r, proxemic_mod_angle, 3 * M_PI / 5),
-      agent,
-      agent_footprint);*/
-
+  if (agent.action == "guiding") {
+    // Proxemics for Guiding = HRI?
+    transformProxemicFootprint(
+      social_geometry::makeProxemicShapeFromAngle(
+        r, intimate_z_radius_, proxemic_mod_angle, M_PI / 6),
+      agent.tf,
+      agent_footprint);
+  } else if (agent.action == "following") {
     // Proxemics for Follow
-    /*
     transformProxemicFootprint(
-      makeCircleFromAngle(r, proxemic_mod_angle, M_PI / 4 + M_PI),
-      agent,
+      social_geometry::makeProxemicShapeFromAngle(
+        r, -intimate_z_radius_, proxemic_mod_angle, M_PI / 6 + M_PI),
+      agent.tf,
       agent_footprint);
-    */
-
-    // Proxemics for HRI
-  
+  } else if (agent.action == "scorting") {
+    // Proxemics for Scort
     transformProxemicFootprint(
-      makeCircleFromAngle(r, proxemic_mod_angle, M_PI / 6),
-      agent,
+      makeScortFootprint(r),
+      agent.tf,
       agent_footprint);
-
   } else {
-    // Default proxemics
-    transformFootprint(
-      agent.getOrigin().x(),
-      agent.getOrigin().y(),
-      0.0,
-      makeCircleFromAngle(r, 2 * M_PI),
+    // Proxemics for HRI
+    transformProxemicFootprint(
+      social_geometry::makeProxemicShapeFromAngle(
+        r, intimate_z_radius_, proxemic_mod_angle, M_PI / 6),
+      agent.tf,
       agent_footprint);
   }
 
@@ -245,10 +252,11 @@ SocialLayer::setProxemics(
     agent_footprint,
     polygon_cells);
 
+  
   for (unsigned int i = 0; i < polygon_cells.size(); i++) {
     double ax, ay;
     mapToWorld(polygon_cells[i].x, polygon_cells[i].y, ax, ay);
-    double a = gaussian(
+    /*double a = gaussian(
       ax,
       ay,
       agent.getOrigin().x(),
@@ -256,27 +264,24 @@ SocialLayer::setProxemics(
       amplitude,
       covar,
       covar,
-      0);
+      0);*/
+    double a = social_geometry::asymmetricGaussian(
+      ax,
+      ay,
+      agent.tf.getOrigin().x(),
+      agent.tf.getOrigin().y(),
+      amplitude,
+      yaw,
+      var_h,
+      var_s,
+      var_r);
+    if (a > 254.0) {a = 254.0;}
+    if (a <= 20.0) {continue;}
     unsigned int index = getIndex(polygon_cells[i].x, polygon_cells[i].y);
-    if (a > 254.0) { a = 254.0;}
     unsigned char cvalue = (unsigned char) a;
     costmap_[index] = cvalue;
+    //RCLCPP_INFO(node_->get_logger(), "index %u value %lu", index, cvalue);
   }
-}
-
-double
-SocialLayer::gaussian(
-  double x, double y, double x0, double y0,
-  double A, double varx, double vary, double skew)
-{
-  double dx = x - x0, dy = y - y0;
-  double h = sqrt(dx * dx + dy * dy);
-  double angle = atan2(dy, dx);
-  double mx = cos(angle - skew) * h;
-  double my = sin(angle - skew) * h;
-  double f1 = pow(mx, 2.0) / (2.0 * varx),
-    f2 = pow(my, 2.0) / (2.0 * vary);
-  return A * exp(-(f1 + f2));
 }
 
 tf2::Vector3 
@@ -308,36 +313,6 @@ SocialLayer::transformProxemicFootprint(
     out_p.y = transform_p.y();
     transformed_proxemic.push_back(out_p);
   }
-}
-
-std::vector<geometry_msgs::msg::Point> 
-SocialLayer::makeCircleFromAngle(float r, float alpha, float orientation)
-{
-  std::vector<geometry_msgs::msg::Point> points;
-
-  // Loop over 32 angles around a circle making a point each time
-  int N = 32;
-  int it = (int) round((N * alpha) / (2 * M_PI));
-  geometry_msgs::msg::Point pt;
-  for (int i = 0; i < it; ++i) {
-    double angle = i * 2 * M_PI / N + orientation;
-    pt.x = cos(angle) * r;
-    pt.y = sin(angle) * r;
-
-    points.push_back(pt);
-  }
-  
-  if (alpha < 2 * M_PI) {
-    pt.x = 0.0;
-    pt.y = 0.0;
-    points.push_back(pt);
-  }
-
-  pt.x = points[0].x;
-  pt.y = points[0].y;
-  points.push_back(pt);
-
-  return points;
 }
 
 std::vector<geometry_msgs::msg::Point> 

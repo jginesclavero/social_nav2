@@ -78,4 +78,70 @@ void getPolygon(
   //convexFillCells(map_polygon, polygon_cells);
 }
 
+std::vector<geometry_msgs::msg::Point> 
+makeProxemicShapeFromAngle(float r, float intimate_r, float alpha, float orientation)
+{
+  std::vector<geometry_msgs::msg::Point> points;
+
+  // Loop over 32 angles around a circle making a point each time
+  int N = 32;
+  int it = (int) round((N * alpha) / (2 * M_PI));
+  geometry_msgs::msg::Point pt;
+  for (int i = 0; i < it; ++i) {
+    double angle = i * 2 * M_PI / N + orientation;
+    pt.x = cos(angle) * r;
+    pt.y = sin(angle) * r;
+
+    points.push_back(pt);
+  }
+  
+  if (alpha < 2 * M_PI) {
+    pt.x = intimate_r;
+    pt.y = 0.0;
+    points.push_back(pt);
+  }
+
+  pt.x = points[0].x;
+  pt.y = points[0].y;
+  points.push_back(pt);
+
+  return points;
+}
+
+double gaussian(
+  double x, double y, double x0, double y0,
+  double A, double varx, double vary, double skew)
+{
+  double dx = x - x0, dy = y - y0;
+  double h = sqrt(dx * dx + dy * dy);
+  double angle = atan2(dy, dx);
+  double mx = cos(angle - skew) * h;
+  double my = sin(angle - skew) * h;
+  double f1 = pow(mx, 2.0) / (2.0 * varx),
+    f2 = pow(my, 2.0) / (2.0 * vary);
+  return A * exp(-(f1 + f2));
+}
+
+double asymmetricGaussian(
+  double x, double y, double x0, double y0,
+  double A, double angle, double var_h, double var_s, double var_r)
+{
+  double sigma;
+  double dx = x - x0, dy = y - y0;
+  double alpha = atan2(dy, dx) - angle + M_PI_2;
+  double alpha_n = tf2NormalizeAngle(alpha);
+  if (alpha_n <= 0.0) {sigma = var_r;}
+  else {sigma = var_h;}
+  double a = (pow(cos(angle), 2) / (2 * pow(sigma, 2))) + 
+             (pow(sin(angle), 2) / (2 * pow(var_s, 2)));
+  double b = ((2 * sin(angle) * cos(angle)) / (4 * pow(sigma, 2))) -
+             ((2 * sin(angle) * cos(angle)) / (4 * pow(var_s, 2)));
+  double c = (pow(sin(angle), 2) / (2 * pow(sigma, 2))) + 
+             (pow(cos(angle), 2) / (2 * pow(var_s, 2)));
+  double f1 = a * (pow(x, 2) + pow(x0, 2) - 2 * x * x0);
+  double f2 = 2 * b * dx * dy;
+  double f3 = c * (pow(y, 2) + pow(y0, 2) - 2 * y * y0);
+  return A * exp(-(f1 + f2 + f3));
+}
+
 }  // namespace social_geometry

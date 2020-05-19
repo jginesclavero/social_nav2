@@ -89,6 +89,7 @@ PeopleFilterLayer::updateBounds(
   double robot_x, double robot_y, double robot_yaw,
   double * min_x, double * min_y, double * max_x, double * max_y)
 {
+  (void) robot_yaw;
   if (rolling_window_) {
     updateOrigin(robot_x - getSizeInMetersX() / 2, robot_y - getSizeInMetersY() / 2);
   }
@@ -111,7 +112,7 @@ PeopleFilterLayer::updateBounds(
     doTouch(agent, min_x, min_y, max_x, max_y);
   }
 
-  updateFootprint(robot_x, robot_y, robot_yaw, min_x, min_y, max_x, max_y);
+  //updateFootprint(robot_x, robot_y, robot_yaw, min_x, min_y, max_x, max_y);
 }
 
 void
@@ -182,7 +183,7 @@ PeopleFilterLayer::agentFilter(tf2::Transform agent, float r)
     agent.getOrigin().x(),
     agent.getOrigin().y(),
     agent.getRotation().getAngle(),
-    makeFootprintFromRadius(r),
+    social_geometry::makeProxemicShapeFromAngle(r, 0.0, 2 * M_PI),
     agent_footprint);
   std::vector<MapLocation> polygon_cells;
   social_geometry::getPolygon(

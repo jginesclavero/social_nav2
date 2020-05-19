@@ -55,6 +55,12 @@ public:
     costmap_ = NULL;  // this is the unsigned char* member of parent class Costmap2D.
   }
 
+  struct Agent
+  {
+    std::string action;
+    tf2::Transform tf;
+  };
+
   virtual ~SocialLayer();
   virtual void onInitialize();
   virtual void updateBounds(
@@ -80,17 +86,13 @@ protected:
   void doTouch(
     tf2::Transform agent, double * min_x, double * min_y,
     double * max_x, double * max_y);
-  bool getAgentTFs(std::vector<tf2::Transform> & agents) const;
+  bool getAgentMap(std::map<std::string, Agent> & agents) const;
   void updateFootprint(
     double robot_x, double robot_y, double robot_yaw, double * min_x,
     double * min_y, double * max_x, double * max_y);
   void setProxemics(
-    tf2::Transform agent, float r, float amplitude, float covar);
-  double gaussian(
-    double x, double y, double x0, double y0,
-    double A, double varx, double vary, double skew);
-  std::vector<geometry_msgs::msg::Point> makeCircleFromAngle(
-    float r, float alpha, float orientation = 0.0);
+    Agent & agent, float r, float amplitude, float covar);
+  
   std::vector<geometry_msgs::msg::Point> makeScortFootprint(float r);
   void quarterFootprint(
     float r, 

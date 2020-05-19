@@ -34,11 +34,18 @@ namespace social_geometry
 void polygonFillCells(
   const std::vector<MapLocation> & polygon,
   std::vector<MapLocation> & polygon_cells);
-
 void getPolygon(
   nav2_costmap_2d::Costmap2D* costmap,
   const std::vector<geometry_msgs::msg::Point> & polygon,
   std::vector<MapLocation> & polygon_cells);
+std::vector<geometry_msgs::msg::Point> 
+makeProxemicShapeFromAngle(float r, float intimate_r, float alpha, float orientation = 0.0);
+double gaussian(
+  double x, double y, double x0, double y0,
+  double A, double varx, double vary, double skew);
+double asymmetricGaussian(
+  double x, double y, double x0, double y0,
+  double A, double angle, double var_h, double var_s, double var_r);
 } 
  // namespace social_geometry
 #endif  // SOCIAL_NAV_PLUGINS__GEOMETRY__GEOMETRY_HPP_
