@@ -51,7 +51,7 @@
     </model>
 
     <model name="turtlebot3_waffle"> 
-      <pose>1.0 -2.0 0.01 0.0 0.0 1.57</pose>
+      <pose>-1.0 -3.0 0.01 0.0 0.0 0.0</pose>
 
       <link name="base_footprint"/>
 

@@ -172,6 +172,7 @@ def generate_launch_description():
                           'params_file': params_file,
                           'bt_xml_file': bt_xml_file,
                           'autostart': autostart}.items())
+
     agent_spawner_cmd = Node(
         package='pedsim_gazebo_plugin',
         node_executable='spawn_pedsim_agents.py',

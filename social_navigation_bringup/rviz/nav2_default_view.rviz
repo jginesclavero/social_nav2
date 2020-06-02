@@ -7,7 +7,10 @@ Panels:
         - /Global Options1
         - /TF1/Frames1
         - /TF1/Tree1
+        - /Map1
         - /Amcl Particle Swarm1/Topic1
+        - /Global Planner1
+        - /Global Planner1/Global Costmap1
       Splitter Ratio: 0.6970587968826294
     Tree Height: 657
   - Class: rviz_common/Selection
@@ -77,6 +80,8 @@ Visualization Manager:
           Value: true
         agent_2:
           Value: true
+        agent_3:
+          Value: true
         base_footprint:
           Value: true
         base_link:
@@ -117,6 +122,8 @@ Visualization Manager:
           agent_1:
             {}
           agent_2:
+            {}
+          agent_3:
             {}
           odom:
             base_footprint:
@@ -244,7 +251,7 @@ Visualization Manager:
       Value: true
     - Class: rviz_common/Group
       Displays:
-        - Alpha: 0.30000001192092896
+        - Alpha: 0.4000000059604645
           Class: rviz_default_plugins/Map
           Color Scheme: costmap
           Draw Behind: false
@@ -579,25 +586,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 13.951658248901367
+      Distance: 10.232640266418457
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.9268714785575867
-        Y: -0.6853474378585815
-        Z: 1.525925874710083
+        X: -1.0383318662643433
+        Y: -2.2741048336029053
+        Z: 0.9541295766830444
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5697963237762451
+      Pitch: 1.3647971153259277
       Target Frame: map
       Value: Orbit (rviz_default_plugins)
-      Yaw: 4.717438697814941
+      Yaw: 4.732423782348633
     Saved: ~
 Window Geometry:
   Displays:
