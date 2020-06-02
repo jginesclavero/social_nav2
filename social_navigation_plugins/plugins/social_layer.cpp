@@ -30,6 +30,7 @@ using nav2_costmap_2d::NO_INFORMATION;
 using nav2_costmap_2d::LETHAL_OBSTACLE;
 using nav2_costmap_2d::FREE_SPACE;
 using nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE;
+using KeyValue = diagnostic_msgs::msg::KeyValue;
 
 namespace nav2_costmap_2d
 {
@@ -43,7 +44,7 @@ SocialLayer::onInitialize()
   declareParameter("enabled", rclcpp::ParameterValue(true));
   declareParameter(
     "footprint_clearing_enabled",
-    rclcpp::ParameterValue(true));
+    rclcpp::ParameterValue(false));
   declareParameter("tf_prefix", rclcpp::ParameterValue("agent_"));
   declareParameter("intimate_z_radius", rclcpp::ParameterValue(0.32));
   declareParameter("social_z_radius", rclcpp::ParameterValue(0.7));
@@ -63,6 +64,7 @@ SocialLayer::onInitialize()
   global_frame_ = layered_costmap_->getGlobalFrameID();
   rolling_window_ = layered_costmap_->isRolling();
   default_value_ = NO_INFORMATION;
+  gaussian_amplitude_ = 400.0; /* Amplitude value to get a LETHAL_OBSTACLE intimate zone */
   RCLCPP_INFO(node_->get_logger(),
     "Subscribed to TF Agent with prefix [%s] in global frame [%s]",
     tf_prefix_.c_str(), global_frame_.c_str());
@@ -81,18 +83,31 @@ SocialLayer::onInitialize()
     node_->get_node_timers_interface());
   tf_buffer_->setCreateTimerInterface(timer_interface);
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+
+  set_action_sub_ = private_node_->create_subscription<KeyValue>(
+    "social_navigation/set_agent_action", 
+    rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
+    std::bind(&SocialLayer::setActionCallback, this, std::placeholders::_1));
 }
 
 void
 SocialLayer::tfCallback(const tf2_msgs::msg::TFMessage::SharedPtr msg)
 {
   for (auto tf : msg->transforms) {
-    if (tf.child_frame_id.find(tf_prefix_) != std::string::npos) {
-      agent_ids_.push_back(tf.child_frame_id);
+    if (tf.child_frame_id.find(tf_prefix_) != std::string::npos &&
+        agents_.find(tf.child_frame_id) == agents_.end()) {
+      Agent a;
+      agents_.insert(std::pair<std::string, Agent>(tf.child_frame_id, a));
     }
   }
-  sort(agent_ids_.begin(), agent_ids_.end());
-  agent_ids_.erase(unique(agent_ids_.begin(), agent_ids_.end()), agent_ids_.end());
+  //sort(agents_.begin(), agents_.end());
+  //agents_.erase(unique(agents_.begin(), agents_.end()), agents_.end());
+}
+
+void SocialLayer::setActionCallback(const KeyValue::SharedPtr msg)
+{
+
+  agents_[msg->key].action = msg->value;
 }
 
 void
@@ -111,16 +126,14 @@ SocialLayer::updateBounds(
   bool current = true;
 
   // get the transform from the agents
-  std::map<std::string, Agent> agents;
-  current = current && getAgentMap(agents);
+  current = current && updateAgentMap(agents_);
 
   // update the global current status
   current_ = current;
 
-  for (auto agent : agents) {
+  for (auto agent : agents_) {
     if (use_proxemics_) {
-      float covar = social_z_radius_ * 0.12 / 0.6;
-      setProxemics(agent.second, social_z_radius_, 260.0, covar);
+      setProxemics(agent.second, social_z_radius_, gaussian_amplitude_);
     }
     doTouch(agent.second.tf, min_x, min_y, max_x, max_y);
   }
@@ -129,6 +142,7 @@ SocialLayer::updateBounds(
     setConvexPolygonCost(transformed_footprint_, nav2_costmap_2d::FREE_SPACE);
   }
   updateFootprint(robot_x, robot_y, robot_yaw, min_x, min_y, max_x, max_y);
+  
 }
 
 void
@@ -151,7 +165,7 @@ SocialLayer::updateCosts(
   int max_j)
 {
   if (!enabled_) {return;}
-  updateWithOverwrite(master_grid, min_i, min_j, max_i, max_j);
+  updateWithMax(master_grid, min_i, min_j, max_i, max_j);
   rclcpp::spin_some(private_node_);
 }
 
@@ -173,40 +187,37 @@ SocialLayer::doTouch(
 }
 
 bool
-SocialLayer::getAgentMap(std::map<std::string, Agent> & agents) const
+SocialLayer::updateAgentMap(std::map<std::string, Agent> & agents)
 {
   geometry_msgs::msg::TransformStamped global2agent;
-
-  for (auto id : agent_ids_) {
+  for (auto agent : agents) {
     try {
       // Check if the transform is available
-      global2agent = tf_buffer_->lookupTransform(global_frame_, id, tf2::TimePointZero);
+      global2agent = tf_buffer_->lookupTransform(global_frame_, agent.first, tf2::TimePointZero);
     } catch (tf2::TransformException & e) {
       RCLCPP_WARN(node_->get_logger(), "%s", e.what());
       return false;
     }
     tf2::Transform global2agent_tf2;
     tf2::impl::Converter<true, false>::convert(global2agent.transform, global2agent_tf2);
-    Agent a;
-    a.action = "none";
-    a.tf = global2agent_tf2;
-    agents.insert(std::pair<std::string, Agent>(id, a));
+    agent.second.tf = global2agent_tf2;
+    agents[agent.first] = agent.second;
+    //RCLCPP_INFO(node_->get_logger(), "P [%f %f]", agent.second.tf.getOrigin().getX(), agent.second.tf.getOrigin().getY());
   }
   return true;
 }
 
 void
 SocialLayer::setProxemics(
-  Agent & agent, float r, float amplitude, float covar)
+  Agent & agent, float r, float amplitude)
 {
-  std::vector<geometry_msgs::msg::Point> agent_footprint;
+  std::vector<geometry_msgs::msg::Point> agent_footprint, intimate_footprint;
   std::vector<MapLocation> polygon_cells;
   double var_h, var_s, var_r;
   
-  var_h = 0.5;
-  var_s = 0.5;
-  var_r = 0.5;
-  (void)covar;
+  var_h = 0.8;
+  var_s = 0.4;
+  var_r = 0.2;
 
   tf2::Matrix3x3 m(agent.tf.getRotation());
   double roll, pitch, yaw;
@@ -217,34 +228,50 @@ SocialLayer::setProxemics(
   }
 
   float proxemic_mod_angle = 2 * M_PI - M_PI / 4;
-
-  if (agent.action == "guiding") {
-    // Proxemics for Guiding = HRI?
-    transformProxemicFootprint(
-      social_geometry::makeProxemicShapeFromAngle(
-        r, intimate_z_radius_, proxemic_mod_angle, M_PI / 6),
-      agent.tf,
-      agent_footprint);
-  } else if (agent.action == "following") {
-    // Proxemics for Follow
-    transformProxemicFootprint(
-      social_geometry::makeProxemicShapeFromAngle(
-        r, -intimate_z_radius_, proxemic_mod_angle, M_PI / 6 + M_PI),
-      agent.tf,
-      agent_footprint);
-  } else if (agent.action == "scorting") {
-    // Proxemics for Scort
-    transformProxemicFootprint(
-      makeScortFootprint(r),
-      agent.tf,
-      agent_footprint);
+  if (orientation_info_) {
+    if (agent.action == "guiding") {
+      // Proxemics for Guiding = HRI?
+      transformProxemicFootprint(
+        social_geometry::makeProxemicShapeFromAngle(
+          r, proxemic_mod_angle, M_PI / 6),
+        agent.tf,
+        agent_footprint);
+    } else if (agent.action == "following") {
+      // Proxemics for Follow
+      transformProxemicFootprint(
+        social_geometry::makeProxemicShapeFromAngle(
+          r, proxemic_mod_angle, M_PI / 6 + M_PI),
+        agent.tf,
+        agent_footprint);
+    } else if (agent.action == "escorting") {
+      var_h = 0.5;
+      var_s = 0.5;
+      var_r = 0.5;
+      // Proxemics for Escort
+      transformProxemicFootprint(
+        makeEscortFootprint(r),
+        agent.tf,
+        agent_footprint);
+    } else {
+      var_h = 0.35;
+      var_s = 0.5;
+      var_r = 0.5;
+      // Proxemics for HRI
+      transformProxemicFootprint(
+        social_geometry::makeProxemicShapeFromAngle(
+          r, proxemic_mod_angle, M_PI / 6),
+        agent.tf,
+        agent_footprint);
+    }
   } else {
-    // Proxemics for HRI
-    transformProxemicFootprint(
-      social_geometry::makeProxemicShapeFromAngle(
-        r, intimate_z_radius_, proxemic_mod_angle, M_PI / 6),
-      agent.tf,
-      agent_footprint);
+    // Classic proxemic approach
+      var_h = 0.5;
+      var_s = 0.5;
+      var_r = 0.5;
+      transformProxemicFootprint(
+        social_geometry::makeProxemicShapeFromAngle(r, 2 * M_PI),
+        agent.tf,
+        agent_footprint);
   }
 
   social_geometry::getPolygon(
@@ -252,19 +279,20 @@ SocialLayer::setProxemics(
     agent_footprint,
     polygon_cells);
 
+  // We add the intimate zone footprint to the proxemic shape polygon.
+  transformProxemicFootprint(
+      social_geometry::makeProxemicShapeFromAngle(intimate_z_radius_, 2 * M_PI),
+    agent.tf,
+    intimate_footprint);
+  social_geometry::getPolygon(
+    layered_costmap_->getCostmap(),
+    intimate_footprint,
+    polygon_cells);
+
   
   for (unsigned int i = 0; i < polygon_cells.size(); i++) {
     double ax, ay;
     mapToWorld(polygon_cells[i].x, polygon_cells[i].y, ax, ay);
-    /*double a = gaussian(
-      ax,
-      ay,
-      agent.getOrigin().x(),
-      agent.getOrigin().y(),
-      amplitude,
-      covar,
-      covar,
-      0);*/
     double a = social_geometry::asymmetricGaussian(
       ax,
       ay,
@@ -279,7 +307,12 @@ SocialLayer::setProxemics(
     if (a <= 20.0) {continue;}
     unsigned int index = getIndex(polygon_cells[i].x, polygon_cells[i].y);
     unsigned char cvalue = (unsigned char) a;
-    costmap_[index] = cvalue;
+    unsigned char old_value = costmap_[index];
+    if (old_value < 255) {
+      costmap_[index] = std::max(old_value, cvalue);
+    } else {
+      costmap_[index] = cvalue;
+    }
     //RCLCPP_INFO(node_->get_logger(), "index %u value %lu", index, cvalue);
   }
 }
@@ -316,7 +349,7 @@ SocialLayer::transformProxemicFootprint(
 }
 
 std::vector<geometry_msgs::msg::Point> 
-SocialLayer::makeScortFootprint(float r)
+SocialLayer::makeEscortFootprint(float r)
 {
   std::vector<geometry_msgs::msg::Point> points;
   geometry_msgs::msg::Point pt;

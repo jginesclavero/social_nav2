@@ -39,7 +39,7 @@ void getPolygon(
   const std::vector<geometry_msgs::msg::Point> & polygon,
   std::vector<MapLocation> & polygon_cells);
 std::vector<geometry_msgs::msg::Point> 
-makeProxemicShapeFromAngle(float r, float intimate_r, float alpha, float orientation = 0.0);
+makeProxemicShapeFromAngle(float r, float alpha, float orientation = 0.0);
 double gaussian(
   double x, double y, double x0, double y0,
   double A, double varx, double vary, double skew);

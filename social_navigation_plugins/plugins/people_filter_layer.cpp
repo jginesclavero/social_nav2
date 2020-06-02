@@ -183,7 +183,7 @@ PeopleFilterLayer::agentFilter(tf2::Transform agent, float r)
     agent.getOrigin().x(),
     agent.getOrigin().y(),
     agent.getRotation().getAngle(),
-    social_geometry::makeProxemicShapeFromAngle(r, 0.0, 2 * M_PI),
+    social_geometry::makeProxemicShapeFromAngle(r, 2 * M_PI),
     agent_footprint);
   std::vector<MapLocation> polygon_cells;
   social_geometry::getPolygon(

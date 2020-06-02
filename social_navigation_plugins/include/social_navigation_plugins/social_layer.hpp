@@ -41,8 +41,11 @@
 #include "tf2_ros/create_timer_ros.h"
 #include "tf2_ros/transform_broadcaster.h"
 #include "tf2_ros/transform_listener.h"
+#include "diagnostic_msgs/msg/key_value.hpp"
 
 #include "social_navigation_plugins/geometry/geometry.hpp"
+
+using KeyValue = diagnostic_msgs::msg::KeyValue;
 
 namespace nav2_costmap_2d
 {
@@ -81,19 +84,20 @@ public:
    * @param message The message returned from a message notifier
    */
   void tfCallback(const tf2_msgs::msg::TFMessage::SharedPtr msg);
+  void setActionCallback(const KeyValue::SharedPtr msg);
 
 protected:
   void doTouch(
     tf2::Transform agent, double * min_x, double * min_y,
     double * max_x, double * max_y);
-  bool getAgentMap(std::map<std::string, Agent> & agents) const;
+  bool updateAgentMap(std::map<std::string, Agent> & agents);
   void updateFootprint(
     double robot_x, double robot_y, double robot_yaw, double * min_x,
     double * min_y, double * max_x, double * max_y);
   void setProxemics(
-    Agent & agent, float r, float amplitude, float covar);
+    Agent & agent, float r, float amplitude);
   
-  std::vector<geometry_msgs::msg::Point> makeScortFootprint(float r);
+  std::vector<geometry_msgs::msg::Point> makeEscortFootprint(float r);
   void quarterFootprint(
     float r, 
     float orientation,
@@ -107,12 +111,14 @@ protected:
     float alpha_mod = 0.0);
   rclcpp::Node::SharedPtr private_node_;
   std::vector<geometry_msgs::msg::Point> transformed_footprint_;
+  std::map<std::string, Agent> agents_;
   std::vector<std::string> agent_ids_;
   rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr tf_sub_;
+  rclcpp::Subscription<KeyValue>::SharedPtr set_action_sub_;
   std::string global_frame_;  ///< @brief The global frame for the costmap
   bool footprint_clearing_enabled_, rolling_window_, use_proxemics_, orientation_info_;
   std::string tf_prefix_;
-  float intimate_z_radius_, social_z_radius_;
+  float intimate_z_radius_, social_z_radius_, gaussian_amplitude_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
 };

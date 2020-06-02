@@ -79,10 +79,9 @@ void getPolygon(
 }
 
 std::vector<geometry_msgs::msg::Point> 
-makeProxemicShapeFromAngle(float r, float intimate_r, float alpha, float orientation)
+makeProxemicShapeFromAngle(float r, float alpha, float orientation)
 {
   std::vector<geometry_msgs::msg::Point> points;
-
   // Loop over 32 angles around a circle making a point each time
   int N = 32;
   int it = (int) round((N * alpha) / (2 * M_PI));
@@ -96,7 +95,7 @@ makeProxemicShapeFromAngle(float r, float intimate_r, float alpha, float orienta
   }
   
   if (alpha < 2 * M_PI) {
-    pt.x = intimate_r;
+    pt.x = 0.0;
     pt.y = 0.0;
     points.push_back(pt);
   }
