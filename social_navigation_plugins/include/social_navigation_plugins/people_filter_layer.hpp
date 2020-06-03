@@ -84,7 +84,7 @@ protected:
   void updateFootprint(
     double robot_x, double robot_y, double robot_yaw, double * min_x,
     double * min_y, double * max_x, double * max_y);
-  void agentFilter(tf2::Transform agent, float r); 
+  void agentFilter(tf2::Transform agent, float r);
 
   rclcpp::Node::SharedPtr private_node_;
   std::vector<geometry_msgs::msg::Point> transformed_footprint_;

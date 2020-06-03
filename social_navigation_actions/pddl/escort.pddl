@@ -15,6 +15,7 @@ agent_id
 (connected ?wp1 ?wp2 - waypoint)
 ;;(patrolled ?wp - waypoint)
 (accompanied ?id - agent_id)
+(followed ?id - agent_id)
 
 );; end Predicates ;;;;;;;;;;;;;;;;;;;;
 ;; Functions ;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -30,6 +31,16 @@ agent_id
        )
     :effect (and
         (at end(accompanied ?id))
+    )
+)
+
+(:durative-action follow
+    :parameters (?r - robot ?id - agent_id)
+    :duration ( = ?duration 5)
+    :condition (and
+       )
+    :effect (and
+        (at end(followed ?id))
     )
 )
 

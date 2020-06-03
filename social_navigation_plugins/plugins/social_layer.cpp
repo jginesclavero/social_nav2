@@ -85,7 +85,7 @@ SocialLayer::onInitialize()
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
   set_action_sub_ = private_node_->create_subscription<KeyValue>(
-    "social_navigation/set_agent_action", 
+    "social_navigation/set_agent_action",
     rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
     std::bind(&SocialLayer::setActionCallback, this, std::placeholders::_1));
 }
@@ -95,7 +95,8 @@ SocialLayer::tfCallback(const tf2_msgs::msg::TFMessage::SharedPtr msg)
 {
   for (auto tf : msg->transforms) {
     if (tf.child_frame_id.find(tf_prefix_) != std::string::npos &&
-        agents_.find(tf.child_frame_id) == agents_.end()) {
+      agents_.find(tf.child_frame_id) == agents_.end())
+    {
       Agent a;
       agents_.insert(std::pair<std::string, Agent>(tf.child_frame_id, a));
     }
@@ -142,7 +143,6 @@ SocialLayer::updateBounds(
     setConvexPolygonCost(transformed_footprint_, nav2_costmap_2d::FREE_SPACE);
   }
   updateFootprint(robot_x, robot_y, robot_yaw, min_x, min_y, max_x, max_y);
-  
 }
 
 void
@@ -214,11 +214,9 @@ SocialLayer::setProxemics(
   std::vector<geometry_msgs::msg::Point> agent_footprint, intimate_footprint;
   std::vector<MapLocation> polygon_cells;
   double var_h, var_s, var_r;
-  
   var_h = 0.8;
   var_s = 0.4;
   var_r = 0.2;
-
   tf2::Matrix3x3 m(agent.tf.getRotation());
   double roll, pitch, yaw;
   if (orientation_info_) {
@@ -265,13 +263,13 @@ SocialLayer::setProxemics(
     }
   } else {
     // Classic proxemic approach
-      var_h = 0.5;
-      var_s = 0.5;
-      var_r = 0.5;
-      transformProxemicFootprint(
-        social_geometry::makeProxemicShapeFromAngle(r, 2 * M_PI),
-        agent.tf,
-        agent_footprint);
+    var_h = 0.5;
+    var_s = 0.5;
+    var_r = 0.5;
+    transformProxemicFootprint(
+      social_geometry::makeProxemicShapeFromAngle(r, 2 * M_PI),
+      agent.tf,
+      agent_footprint);
   }
 
   social_geometry::getPolygon(
@@ -281,7 +279,7 @@ SocialLayer::setProxemics(
 
   // We add the intimate zone footprint to the proxemic shape polygon.
   transformProxemicFootprint(
-      social_geometry::makeProxemicShapeFromAngle(intimate_z_radius_, 2 * M_PI),
+    social_geometry::makeProxemicShapeFromAngle(intimate_z_radius_, 2 * M_PI),
     agent.tf,
     intimate_footprint);
   social_geometry::getPolygon(
@@ -289,7 +287,6 @@ SocialLayer::setProxemics(
     intimate_footprint,
     polygon_cells);
 
-  
   for (unsigned int i = 0; i < polygon_cells.size(); i++) {
     double ax, ay;
     mapToWorld(polygon_cells[i].x, polygon_cells[i].y, ax, ay);
@@ -317,11 +314,11 @@ SocialLayer::setProxemics(
   }
 }
 
-tf2::Vector3 
+tf2::Vector3
 SocialLayer::transformPoint(
   const tf2::Vector3 & input_point, const tf2::Transform & transform)
 {
-  return  transform * input_point;
+  return transform * input_point;
 }
 
 void
@@ -348,7 +345,7 @@ SocialLayer::transformProxemicFootprint(
   }
 }
 
-std::vector<geometry_msgs::msg::Point> 
+std::vector<geometry_msgs::msg::Point>
 SocialLayer::makeEscortFootprint(float r)
 {
   std::vector<geometry_msgs::msg::Point> points;
@@ -356,7 +353,7 @@ SocialLayer::makeEscortFootprint(float r)
   pt.x = 0.0;
   pt.y = 0.0;
   points.push_back(pt);
-  float orientation = - M_PI / 4;
+  float orientation = -M_PI / 4;
   quarterFootprint(r, orientation, points);
   orientation = orientation + M_PI;
   quarterFootprint(r, orientation, points);
@@ -365,7 +362,8 @@ SocialLayer::makeEscortFootprint(float r)
 
 void
 SocialLayer::quarterFootprint(
-  float r, float orientation, std::vector<geometry_msgs::msg::Point> & points) {
+  float r, float orientation, std::vector<geometry_msgs::msg::Point> & points)
+{
   // Loop over 32 angles around a circle making a point each time
   int N = 32;
   float alpha = M_PI / 2;

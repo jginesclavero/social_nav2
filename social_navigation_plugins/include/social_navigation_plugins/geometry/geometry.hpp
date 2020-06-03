@@ -26,7 +26,7 @@
 
 typedef boost::geometry::model::d2::point_xy<double> point_type;
 typedef boost::geometry::model::polygon<point_type> polygon_type;
-using namespace nav2_costmap_2d; 
+using namespace nav2_costmap_2d;
 
 namespace social_geometry
 {
@@ -35,10 +35,10 @@ void polygonFillCells(
   const std::vector<MapLocation> & polygon,
   std::vector<MapLocation> & polygon_cells);
 void getPolygon(
-  nav2_costmap_2d::Costmap2D* costmap,
+  nav2_costmap_2d::Costmap2D * costmap,
   const std::vector<geometry_msgs::msg::Point> & polygon,
   std::vector<MapLocation> & polygon_cells);
-std::vector<geometry_msgs::msg::Point> 
+std::vector<geometry_msgs::msg::Point>
 makeProxemicShapeFromAngle(float r, float alpha, float orientation = 0.0);
 double gaussian(
   double x, double y, double x0, double y0,
@@ -46,6 +46,6 @@ double gaussian(
 double asymmetricGaussian(
   double x, double y, double x0, double y0,
   double A, double angle, double var_h, double var_s, double var_r);
-} 
- // namespace social_geometry
+}
+// namespace social_geometry
 #endif  // SOCIAL_NAV_PLUGINS__GEOMETRY__GEOMETRY_HPP_

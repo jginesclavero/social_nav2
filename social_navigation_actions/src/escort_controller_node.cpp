@@ -51,11 +51,10 @@ public:
     auto request = std::make_shared<lifecycle_msgs::srv::GetState::Request>();
     auto result = executor_state_client_->async_send_request(request);
 
-    if (rclcpp::spin_until_future_complete(shared_from_this(), result ) ==
+    if (rclcpp::spin_until_future_complete(shared_from_this(), result) ==
       rclcpp::executor::FutureReturnCode::SUCCESS)
     {
-      if (result.get()->current_state.label == "active")
-      {
+      if (result.get()->current_state.label == "active") {
         problem_expert_->addInstance(plansys2::Instance{"leia", "robot"});
         problem_expert_->addInstance(plansys2::Instance{"agent_1", "agent_id"});
         knowledge_ready = true;
@@ -67,25 +66,24 @@ public:
 
   void step()
   {
-    if(!knowledge_ready) {
+    if (!knowledge_ready) {
       init_knowledge();
     } else {
       switch (state_) {
-      case STARTING:
-        if (executor_client_) {
-          // Set the goal for next state, and execute plan
-          problem_expert_->setGoal(plansys2::Goal("(and(accompanied agent_1))"));
-
-          if (executor_client_->executePlan()) {
-            state_ = ESCORTING;
+        case STARTING:
+          if (executor_client_) {
+            // Set the goal for next state, and execute plan
+            problem_expert_->setGoal(plansys2::Goal("(and(followed agent_1))"));
+            if (executor_client_->executePlan()) {
+              state_ = ESCORTING;
+            }
           }
-        }
-        break;
-      case ESCORTING:
-        {
-          //RCLCPP_INFO(get_logger(), "ESCORTING STATE");
-        }
-        break;
+          break;
+        case ESCORTING:
+          {
+            // RCLCPP_INFO(get_logger(), "ESCORTING STATE");
+          }
+          break;
       }
     }
   }
@@ -97,7 +95,6 @@ private:
   std::shared_ptr<plansys2::ProblemExpertClient> problem_expert_;
   std::shared_ptr<plansys2::ExecutorClient> executor_client_;
   std::shared_ptr<rclcpp::Client<lifecycle_msgs::srv::GetState>> executor_state_client_;
-
 };
 
 int main(int argc, char ** argv)

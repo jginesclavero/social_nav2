@@ -15,7 +15,7 @@
 
 #include "social_navigation_plugins/geometry/geometry.hpp"
 
-using namespace nav2_costmap_2d; 
+using namespace nav2_costmap_2d;
 
 namespace social_geometry
 {
@@ -28,8 +28,9 @@ void polygonFillCells(
   polygon_type b_poly;
   unsigned int min_x = 0, max_x = 0, min_y = 0, max_y = 0;
   for (auto p : polygon) {
-    if (min_x == 0 && max_x == 0 && 
-        min_y == 0 && max_y == 0) {
+    if (min_x == 0 && max_x == 0 &&
+      min_y == 0 && max_y == 0)
+    {
       min_x = p.x;
       max_x = p.x;
       min_y = p.y;
@@ -42,12 +43,8 @@ void polygonFillCells(
 
     boost::geometry::append(b_poly.outer(), point_type(p.x, p.y));
   }
- 
-  //RCLCPP_INFO(rclcpp::get_logger(""), "min_x [%i], max_x [%i], min_y [%i], max_y [%i]",
-  //min_x, max_x, min_y, max_y);
-
-  for (unsigned int i = min_x ; i < max_x; ++i) {
-    for (unsigned int j = min_y ; j < max_y; ++j) {
+  for (unsigned int i = min_x; i < max_x; ++i) {
+    for (unsigned int j = min_y; j < max_y; ++j) {
       point_type p(i, j);
       if (boost::geometry::within(p, b_poly)) {
         MapLocation c;
@@ -60,7 +57,7 @@ void polygonFillCells(
 }
 
 void getPolygon(
-  nav2_costmap_2d::Costmap2D* costmap,
+  nav2_costmap_2d::Costmap2D * costmap,
   const std::vector<geometry_msgs::msg::Point> & polygon,
   std::vector<MapLocation> & polygon_cells)
 {
@@ -78,7 +75,7 @@ void getPolygon(
   //convexFillCells(map_polygon, polygon_cells);
 }
 
-std::vector<geometry_msgs::msg::Point> 
+std::vector<geometry_msgs::msg::Point>
 makeProxemicShapeFromAngle(float r, float alpha, float orientation)
 {
   std::vector<geometry_msgs::msg::Point> points;
@@ -90,20 +87,16 @@ makeProxemicShapeFromAngle(float r, float alpha, float orientation)
     double angle = i * 2 * M_PI / N + orientation;
     pt.x = cos(angle) * r;
     pt.y = sin(angle) * r;
-
     points.push_back(pt);
   }
-  
   if (alpha < 2 * M_PI) {
     pt.x = 0.0;
     pt.y = 0.0;
     points.push_back(pt);
   }
-
   pt.x = points[0].x;
   pt.y = points[0].y;
   points.push_back(pt);
-
   return points;
 }
 
@@ -129,14 +122,13 @@ double asymmetricGaussian(
   double dx = x - x0, dy = y - y0;
   double alpha = atan2(dy, dx) - angle + M_PI_2;
   double alpha_n = tf2NormalizeAngle(alpha);
-  if (alpha_n <= 0.0) {sigma = var_r;}
-  else {sigma = var_h;}
-  double a = (pow(cos(angle), 2) / (2 * pow(sigma, 2))) + 
-             (pow(sin(angle), 2) / (2 * pow(var_s, 2)));
+  if (alpha_n <= 0.0) {sigma = var_r;} else {sigma = var_h;}
+  double a = (pow(cos(angle), 2) / (2 * pow(sigma, 2))) +
+    (pow(sin(angle), 2) / (2 * pow(var_s, 2)));
   double b = ((2 * sin(angle) * cos(angle)) / (4 * pow(sigma, 2))) -
-             ((2 * sin(angle) * cos(angle)) / (4 * pow(var_s, 2)));
-  double c = (pow(sin(angle), 2) / (2 * pow(sigma, 2))) + 
-             (pow(cos(angle), 2) / (2 * pow(var_s, 2)));
+    ((2 * sin(angle) * cos(angle)) / (4 * pow(var_s, 2)));
+  double c = (pow(sin(angle), 2) / (2 * pow(sigma, 2))) +
+    (pow(cos(angle), 2) / (2 * pow(var_s, 2)));
   double f1 = a * (pow(x, 2) + pow(x0, 2) - 2 * x * x0);
   double f2 = 2 * b * dx * dy;
   double f3 = c * (pow(y, 2) + pow(y0, 2) - 2 * y * y0);

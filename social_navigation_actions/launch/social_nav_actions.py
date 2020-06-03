@@ -37,7 +37,7 @@ def generate_launch_description():
         launch_arguments={'model_file': example_dir + '/pddl/escort.pddl'}.items()
         )
 
-    #nav2_cmd = IncludeLaunchDescription(
+    # nav2_cmd = IncludeLaunchDescription(
     #    PythonLaunchDescriptionSource(os.path.join(
     #        get_package_share_directory('nav2_bringup'),
     #        'launch',
@@ -54,7 +54,13 @@ def generate_launch_description():
         node_name='escort_action_node',
         output='screen',
         parameters=[])
-    
+
+    follow_cmd = Node(
+        package='social_navigation_actions',
+        node_executable='follow_action_node',
+        node_name='follow_action_node',
+        output='screen',
+        parameters=[])
     escort_controller_cmd = Node(
         package='social_navigation_actions',
         node_executable='escort_controller_node',
@@ -70,9 +76,10 @@ def generate_launch_description():
 
     # Declare the launch options
     ld.add_action(plansys2_cmd)
-    #ld.add_action(nav2_cmd)
+    # ld.add_action(nav2_cmd)
 
     ld.add_action(scort_cmd)
+    ld.add_action(follow_cmd)
     ld.add_action(escort_controller_cmd)
 
     return ld

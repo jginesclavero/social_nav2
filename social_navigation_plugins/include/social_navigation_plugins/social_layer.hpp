@@ -96,10 +96,9 @@ protected:
     double * min_y, double * max_x, double * max_y);
   void setProxemics(
     Agent & agent, float r, float amplitude);
-  
   std::vector<geometry_msgs::msg::Point> makeEscortFootprint(float r);
   void quarterFootprint(
-    float r, 
+    float r,
     float orientation,
     std::vector<geometry_msgs::msg::Point> & points);
   tf2::Vector3 transformPoint(

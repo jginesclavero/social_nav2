@@ -24,12 +24,14 @@ set(dependencies
     diagnostic_msgs
     plansys2_executor
     plansys2_domain_expert
-
     nav2_costmap_2d
 )
 
 add_executable(escort_action_node src/escort_action_node.cpp)
 ament_target_dependencies(escort_action_node ${dependencies})
+
+add_executable(follow_action_node src/follow_action_node.cpp)
+ament_target_dependencies(follow_action_node ${dependencies})
 
 add_executable(escort_controller_node src/escort_controller_node.cpp)
 ament_target_dependencies(escort_controller_node ${dependencies})
@@ -38,6 +40,7 @@ install(DIRECTORY launch pddl DESTINATION share/${PROJECT_NAME})
 
 install(TARGETS
   escort_action_node
+  follow_action_node
   escort_controller_node
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
@@ -46,9 +49,10 @@ install(TARGETS
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
+  set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 
-  find_package(ament_cmake_gtest REQUIRED)
+  #find_package(ament_cmake_gtest REQUIRED)
 endif()
 
 ament_export_dependencies(${dependencies})

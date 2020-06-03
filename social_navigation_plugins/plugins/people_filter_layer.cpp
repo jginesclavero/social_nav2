@@ -47,11 +47,9 @@ PeopleFilterLayer::onInitialize()
   node_->get_parameter(name_ + "." + "enabled", enabled_);
   node_->get_parameter(name_ + "." + "tf_prefix", tf_prefix_);
   node_->get_parameter(name_ + "." + "filter_radius", filter_radius_);
-  
   global_frame_ = layered_costmap_->getGlobalFrameID();
   rolling_window_ = layered_costmap_->isRolling();
   default_value_ = NO_INFORMATION;
-  
   RCLCPP_INFO(node_->get_logger(),
     "Subscribed to TF Agent with prefix [%s] in global frame [%s]",
     tf_prefix_.c_str(), global_frame_.c_str());

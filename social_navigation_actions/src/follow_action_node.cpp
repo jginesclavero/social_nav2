@@ -47,11 +47,11 @@ using GetParameters = rcl_interfaces::srv::GetParameters;
 using LifecycleNodeInterface = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface;
 using nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE;
 
-class ScortAction : public plansys2::ActionExecutorClient
+class FollowAction : public plansys2::ActionExecutorClient
 {
 public:
-  ScortAction()
-  : plansys2::ActionExecutorClient("escort")
+  FollowAction()
+  : plansys2::ActionExecutorClient("follow")
   {
     using namespace std::placeholders;
     tf_buffer_ = std::make_shared<tf2_ros::Buffer>(get_clock());
@@ -97,11 +97,14 @@ public:
     params_map.insert(std::pair<std::string, float>(
         "intimate_z_radius",
         params_handle_->values[1].double_value));
+
     agent_id_ = getArguments()[1];  // The id is in the 3rd argument of the action
     RCLCPP_INFO(get_logger(), "Agent id [%s]", agent_id_.c_str());
+
     navigation_action_client_ =
       rclcpp_action::create_client<nav2_msgs::action::NavigateToPose>(shared_from_this(),
         "navigate_to_pose");
+
     bool is_action_server_ready = false;
     do {
       RCLCPP_INFO(get_logger(), "Waiting for navigation action server...");
@@ -142,7 +145,7 @@ private:
     return output;
   }
 
-  void getNavEscortPosesFromAgent(
+  void getNavFollowPosesFromAgent(
     std::string id,
     std::vector<geometry_msgs::msg::Pose> & poses)
   {
@@ -151,22 +154,18 @@ private:
     if (!getAgentTF(id, global2agent_tf2)) {return;}
 
     tf2::Vector3 p1(
-      params_map["robot_radius"],
       -params_map["intimate_z_radius"] - params_map["robot_radius"],
+      0.0,
       0.0);
     tf2::Vector3 p2(
-      params_map["robot_radius"],
       -params_map["intimate_z_radius"] - 2 * params_map["robot_radius"],
+      0.0,
       0.0);
     tf2::Vector3 p3(
-      params_map["robot_radius"],
-      -params_map["intimate_z_radius"],
-      0.0);
-    tf2::Vector3 p4(
       -params_map["intimate_z_radius"],
       0.0,
       0.0);
-    std::vector<tf2::Vector3> v_p {p1, p2, p3, p4};
+    std::vector<tf2::Vector3> v_p {p1, p2, p3};
     for (auto p : v_p) {
       poses.push_back(tf2ToPose(global2agent_tf2 * p, global2agent_tf2.getRotation()));
     }
@@ -176,17 +175,13 @@ private:
     std::vector<geometry_msgs::msg::Pose> & poses,
     geometry_msgs::msg::Pose & best_pose)
   {
-    unsigned int mx, my, i = 0;
+    unsigned int mx, my;
     try {
       // Check if the transform is available
       auto costmap = costmap_sub_->getCostmap();
       for (auto pos : poses) {
-        ++i;
         if (costmap->worldToMap(pos.position.x, pos.position.y, mx, my)) {
-          if (costmap->getCost(mx, my) < 20 || (
-              i == poses_.size() &&
-              costmap->getCost(mx, my) < nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE))
-          {
+          if (costmap->getCost(mx, my) < nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
             best_pose = pos;
             return true;
           }
@@ -203,19 +198,19 @@ private:
     if (!action_setted && get_current_state().label() == "active") {
       auto message = diagnostic_msgs::msg::KeyValue();
       message.key = agent_id_;
-      message.value = "escorting";
+      message.value = "following";
       action_pub_->publish(message);
       action_setted = true;
     }
 
     poses_.clear();
-    getNavEscortPosesFromAgent(agent_id_, poses_);
-    geometry_msgs::msg::Pose escort_p;
-    if (poses_.size() == 0 || !getBetterPose(poses_, escort_p)) {
+    getNavFollowPosesFromAgent(agent_id_, poses_);
+    geometry_msgs::msg::Pose follow_p;
+    if (poses_.size() == 0 || !getBetterPose(poses_, follow_p)) {
       return;
     }
-    navigation_goal_.pose.pose = escort_p;
-    // RCLCPP_INFO(get_logger(), "P [%f %f]", escort_p.position.x, escort_p.position.y);
+    navigation_goal_.pose.pose = follow_p;
+    // RCLCPP_INFO(get_logger(), "P [%f %f]", follow_p.position.x, follow_p.position.y);
     future_navigation_goal_handle_ =
       navigation_action_client_->async_send_goal(navigation_goal_);
     navigation_goal_handle_ = future_navigation_goal_handle_.get();
@@ -259,7 +254,7 @@ private:
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
-  auto node = std::make_shared<ScortAction>();
+  auto node = std::make_shared<FollowAction>();
 
   rclcpp::spin(node->get_node_base_interface());
 
