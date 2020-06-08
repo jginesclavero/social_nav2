@@ -73,7 +73,8 @@ public:
         case STARTING:
           if (executor_client_) {
             // Set the goal for next state, and execute plan
-            problem_expert_->setGoal(plansys2::Goal("(and(followed agent_1))"));
+            problem_expert_->setGoal(plansys2::Goal("(and(accompanied agent_1))"));
+            // problem_expert_->setGoal(plansys2::Goal("(and(followed agent_1))"));
             if (executor_client_->executePlan()) {
               state_ = ESCORTING;
             }

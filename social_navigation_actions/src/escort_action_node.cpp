@@ -13,12 +13,11 @@
 // limitations under the License.
 
 #include <math.h>
-
+#include <utility>
+#include <vector>
 #include <memory>
 #include <string>
 #include <map>
-#include <utility>
-#include <vector>
 
 #include "plansys2_msgs/action/execute_action.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
@@ -60,7 +59,7 @@ public:
       get_node_timers_interface());
     tf_buffer_->setCreateTimerInterface(timer_interface);
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
-    set_rate(1.0);
+    set_rate(1.5);
   }
 
   LifecycleNodeInterface::CallbackReturn
@@ -81,7 +80,7 @@ public:
     do {
       RCLCPP_INFO(get_logger(), "Waiting for params...");
       is_server_ready =
-        params_client_->wait_for_service(std::chrono::seconds(5));
+        params_client_->wait_for_service(std::chrono::seconds(10));
     } while (!is_server_ready);
 
     auto request = std::make_shared<GetParameters::Request>();
@@ -106,7 +105,7 @@ public:
     do {
       RCLCPP_INFO(get_logger(), "Waiting for navigation action server...");
       is_action_server_ready =
-        navigation_action_client_->wait_for_action_server(std::chrono::seconds(5));
+        navigation_action_client_->wait_for_action_server(std::chrono::seconds(10));
     } while (!is_action_server_ready);
 
     RCLCPP_INFO(get_logger(), "Navigation action server ready");
@@ -156,14 +155,14 @@ private:
       0.0);
     tf2::Vector3 p2(
       params_map["robot_radius"],
-      -params_map["intimate_z_radius"] - 2 * params_map["robot_radius"],
+      -params_map["intimate_z_radius"],
       0.0);
     tf2::Vector3 p3(
       params_map["robot_radius"],
-      -params_map["intimate_z_radius"],
+      -params_map["intimate_z_radius"] - 2 * params_map["robot_radius"],
       0.0);
     tf2::Vector3 p4(
-      -params_map["intimate_z_radius"],
+      -params_map["intimate_z_radius"] - params_map["robot_radius"],
       0.0,
       0.0);
     std::vector<tf2::Vector3> v_p {p1, p2, p3, p4};
