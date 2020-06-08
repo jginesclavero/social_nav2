@@ -115,9 +115,10 @@ protected:
   rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr tf_sub_;
   rclcpp::Subscription<KeyValue>::SharedPtr set_action_sub_;
   std::string global_frame_;  ///< @brief The global frame for the costmap
-  bool footprint_clearing_enabled_, rolling_window_, use_proxemics_, orientation_info_;
+  bool footprint_clearing_enabled_, rolling_window_, use_proxemics_, orientation_info_,
+    tf_received_;
   std::string tf_prefix_;
-  float intimate_z_radius_, social_z_radius_, gaussian_amplitude_;
+  float intimate_z_radius_, personal_z_radius_, gaussian_amplitude_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
 };

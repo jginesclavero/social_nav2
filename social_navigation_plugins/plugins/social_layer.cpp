@@ -47,7 +47,7 @@ SocialLayer::onInitialize()
     rclcpp::ParameterValue(false));
   declareParameter("tf_prefix", rclcpp::ParameterValue("agent_"));
   declareParameter("intimate_z_radius", rclcpp::ParameterValue(0.32));
-  declareParameter("social_z_radius", rclcpp::ParameterValue(0.7));
+  declareParameter("personal_z_radius", rclcpp::ParameterValue(0.7));
   declareParameter("orientation_info", rclcpp::ParameterValue(false));
   declareParameter("use_proxemics", rclcpp::ParameterValue(true));
 
@@ -57,7 +57,7 @@ SocialLayer::onInitialize()
     footprint_clearing_enabled_);
   node_->get_parameter(name_ + "." + "tf_prefix", tf_prefix_);
   node_->get_parameter(name_ + "." + "intimate_z_radius", intimate_z_radius_);
-  node_->get_parameter(name_ + "." + "social_z_radius", social_z_radius_);
+  node_->get_parameter(name_ + "." + "personal_z_radius", personal_z_radius_);
   node_->get_parameter(name_ + "." + "orientation_info", orientation_info_);
   node_->get_parameter(name_ + "." + "use_proxemics", use_proxemics_);
 
@@ -72,6 +72,7 @@ SocialLayer::onInitialize()
 
   SocialLayer::matchSize();
   current_ = true;
+  tf_received_= false;
 
   tf_sub_ = private_node_->create_subscription<tf2_msgs::msg::TFMessage>(
     "tf", rclcpp::SensorDataQoS(),
@@ -99,15 +100,13 @@ SocialLayer::tfCallback(const tf2_msgs::msg::TFMessage::SharedPtr msg)
     {
       Agent a;
       agents_.insert(std::pair<std::string, Agent>(tf.child_frame_id, a));
+      tf_received_ = true;
     }
   }
-  //sort(agents_.begin(), agents_.end());
-  //agents_.erase(unique(agents_.begin(), agents_.end()), agents_.end());
 }
 
 void SocialLayer::setActionCallback(const KeyValue::SharedPtr msg)
 {
-
   agents_[msg->key].action = msg->value;
 }
 
@@ -116,11 +115,12 @@ SocialLayer::updateBounds(
   double robot_x, double robot_y, double robot_yaw,
   double * min_x, double * min_y, double * max_x, double * max_y)
 {
+  if (!enabled_ || !tf_received_) {return;}
+
   if (rolling_window_) {
     updateOrigin(robot_x - getSizeInMetersX() / 2, robot_y - getSizeInMetersY() / 2);
   }
 
-  if (!enabled_) {return;}
   clearArea(0, 0, getSizeInCellsX(), getSizeInCellsY());
 
   useExtraBounds(min_x, min_y, max_x, max_y);
@@ -134,7 +134,7 @@ SocialLayer::updateBounds(
 
   for (auto agent : agents_) {
     if (use_proxemics_) {
-      setProxemics(agent.second, social_z_radius_, gaussian_amplitude_);
+      setProxemics(agent.second, personal_z_radius_, gaussian_amplitude_);
     }
     doTouch(agent.second.tf, min_x, min_y, max_x, max_y);
   }
@@ -235,6 +235,9 @@ SocialLayer::setProxemics(
         agent.tf,
         agent_footprint);
     } else if (agent.action == "following") {
+      var_h = 0.5;
+      var_s = 0.5;
+      var_r = 0.35;
       // Proxemics for Follow
       transformProxemicFootprint(
         social_geometry::makeProxemicShapeFromAngle(
