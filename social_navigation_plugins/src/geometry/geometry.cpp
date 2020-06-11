@@ -122,6 +122,9 @@ double asymmetricGaussian(
   double dx = x - x0, dy = y - y0;
   double alpha = atan2(dy, dx) - angle + M_PI_2;
   double alpha_n = tf2NormalizeAngle(alpha);
+  var_h = var_h / 2;
+  var_s = var_s / 2;
+  var_r = var_r / 2;
   if (alpha_n <= 0.0) {sigma = var_r;} else {sigma = var_h;}
   double a = (pow(cos(angle), 2) / (2 * pow(sigma, 2))) +
     (pow(sin(angle), 2) / (2 * pow(var_s, 2)));

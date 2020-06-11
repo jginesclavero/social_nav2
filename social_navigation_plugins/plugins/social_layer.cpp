@@ -40,7 +40,8 @@ SocialLayer::~SocialLayer() {}
 void
 SocialLayer::onInitialize()
 {
-  // TODO(mjeronimo): these four are candidates for dynamic update
+  std::vector<std::string> action_names{"default"};
+
   declareParameter("enabled", rclcpp::ParameterValue(true));
   declareParameter(
     "footprint_clearing_enabled",
@@ -50,6 +51,7 @@ SocialLayer::onInitialize()
   declareParameter("personal_z_radius", rclcpp::ParameterValue(0.7));
   declareParameter("orientation_info", rclcpp::ParameterValue(false));
   declareParameter("use_proxemics", rclcpp::ParameterValue(true));
+  declareParameter("action_names", rclcpp::ParameterValue(action_names));
 
   node_->get_parameter(name_ + "." + "enabled", enabled_);
   node_->get_parameter(
@@ -60,6 +62,39 @@ SocialLayer::onInitialize()
   node_->get_parameter(name_ + "." + "personal_z_radius", personal_z_radius_);
   node_->get_parameter(name_ + "." + "orientation_info", orientation_info_);
   node_->get_parameter(name_ + "." + "use_proxemics", use_proxemics_);
+  node_->get_parameter(name_ + "." + "action_names", action_names_);
+
+  for (auto action : action_names_) {
+    ActionZoneParams p;
+    if (orientation_info_) {
+      declareParameter(action + "." + "var_h", rclcpp::ParameterValue(0.9));
+      declareParameter(action + "." + "var_s", rclcpp::ParameterValue(0.9));
+      declareParameter(action + "." + "var_r", rclcpp::ParameterValue(1.2));
+    } else {
+      declareParameter(action + "." + "var_h", rclcpp::ParameterValue(1.2));
+      declareParameter(action + "." + "var_s", rclcpp::ParameterValue(1.2));
+      declareParameter(action + "." + "var_r", rclcpp::ParameterValue(1.2));
+    }
+    
+    declareParameter(action + "." + "n_activity_zones", rclcpp::ParameterValue(0));
+    declareParameter(action + "." + "activity_zone_alpha", rclcpp::ParameterValue(0.0));
+    declareParameter(action + "." + "activity_zone_phi", rclcpp::ParameterValue(0.0));
+
+    node_->get_parameter(name_ + "." + action + "." + "var_h", p.var_h);
+    node_->get_parameter(name_ + "." + action + "." + "var_s", p.var_s);
+    node_->get_parameter(name_ + "." + action + "." + "var_r", p.var_r);
+    node_->get_parameter(name_ + "." + action + "." + "n_activity_zones", p.n_activity_zones);
+    node_->get_parameter(name_ + "." + action + "." + "activity_zone_alpha", p.activity_zone_alpha);
+    node_->get_parameter(name_ + "." + action + "." + "activity_zone_phi", p.activity_zone_phi);
+
+    RCLCPP_INFO(node_->get_logger(), 
+    "Action [%s] params: var_h [%f], var_s [%f], var_r [%f], n_activity_zones [%i], "
+    "activity_zone_alpha [%f], activity_zone_alpha [%f]",
+    action.c_str(), p.var_h, p.var_s, p.var_r, p.n_activity_zones, 
+    p.activity_zone_alpha, p.activity_zone_phi);
+
+    action_z_params_map_.insert(std::pair<std::string, ActionZoneParams>(action,p));
+  }
 
   global_frame_ = layered_costmap_->getGlobalFrameID();
   rolling_window_ = layered_costmap_->isRolling();
@@ -73,7 +108,13 @@ SocialLayer::onInitialize()
   SocialLayer::matchSize();
   current_ = true;
   tf_received_= false;
-
+  social_costmap_ = new Costmap2D();
+  social_costmap_->resizeMap(
+    layered_costmap_->getCostmap()->getSizeInCellsX(),
+    layered_costmap_->getCostmap()->getSizeInCellsY(),
+    layered_costmap_->getCostmap()->getResolution(),
+    layered_costmap_->getCostmap()->getOriginX(),
+    layered_costmap_->getCostmap()->getOriginY());
   tf_sub_ = private_node_->create_subscription<tf2_msgs::msg::TFMessage>(
     "tf", rclcpp::SensorDataQoS(),
     std::bind(&SocialLayer::tfCallback, this, std::placeholders::_1));
@@ -89,6 +130,12 @@ SocialLayer::onInitialize()
     "social_navigation/set_agent_action",
     rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
     std::bind(&SocialLayer::setActionCallback, this, std::placeholders::_1));
+
+  costmap_pub_ = std::make_shared<Costmap2DPublisher>(
+    node_,
+    social_costmap_, global_frame_,
+    name_ + "/costmap", true);
+  costmap_pub_->on_activate();
 }
 
 void
@@ -107,7 +154,15 @@ SocialLayer::tfCallback(const tf2_msgs::msg::TFMessage::SharedPtr msg)
 
 void SocialLayer::setActionCallback(const KeyValue::SharedPtr msg)
 {
-  agents_[msg->key].action = msg->value;
+  auto element = action_z_params_map_.find(msg->value);
+  if (element != action_z_params_map_.end()) {
+    agents_[msg->key].action = msg->value;
+  } else {
+    RCLCPP_ERROR(node_->get_logger(),
+    "Action [%s] not declared in social_layer of [%s]",
+    msg->value.c_str(),
+    node_->get_logger().get_name());
+  }
 }
 
 void
@@ -143,6 +198,13 @@ SocialLayer::updateBounds(
     setConvexPolygonCost(transformed_footprint_, nav2_costmap_2d::FREE_SPACE);
   }
   updateFootprint(robot_x, robot_y, robot_yaw, min_x, min_y, max_x, max_y);
+
+  costmap_pub_->publishCostmap();
+  social_costmap_->resetMap(
+    0,
+    0,
+    social_costmap_->getSizeInCellsX(),
+    social_costmap_->getSizeInCellsY());
 }
 
 void
@@ -214,9 +276,7 @@ SocialLayer::setProxemics(
   std::vector<geometry_msgs::msg::Point> agent_footprint, intimate_footprint;
   std::vector<MapLocation> polygon_cells;
   double var_h, var_s, var_r;
-  var_h = 0.8;
-  var_s = 0.4;
-  var_r = 0.2;
+
   tf2::Matrix3x3 m(agent.tf.getRotation());
   double roll, pitch, yaw;
   if (orientation_info_) {
@@ -225,52 +285,32 @@ SocialLayer::setProxemics(
     yaw = 0.0;
   }
 
-  float proxemic_mod_angle = 2 * M_PI - M_PI / 4;
-  if (orientation_info_) {
-    if (agent.action == "guiding") {
-      // Proxemics for Guiding = HRI?
-      transformProxemicFootprint(
-        social_geometry::makeProxemicShapeFromAngle(
-          r, proxemic_mod_angle, M_PI / 6),
-        agent.tf,
-        agent_footprint);
-    } else if (agent.action == "following") {
-      var_h = 0.5;
-      var_s = 0.5;
-      var_r = 0.35;
-      // Proxemics for Follow
-      transformProxemicFootprint(
-        social_geometry::makeProxemicShapeFromAngle(
-          r, proxemic_mod_angle, M_PI / 6 + M_PI),
-        agent.tf,
-        agent_footprint);
-    } else if (agent.action == "escorting") {
-      var_h = 0.5;
-      var_s = 0.5;
-      var_r = 0.5;
-      // Proxemics for Escort
-      transformProxemicFootprint(
-        makeEscortFootprint(r),
-        agent.tf,
-        agent_footprint);
-    } else {
-      var_h = 0.35;
-      var_s = 0.5;
-      var_r = 0.5;
-      // Proxemics for HRI
-      transformProxemicFootprint(
-        social_geometry::makeProxemicShapeFromAngle(
-          r, proxemic_mod_angle, M_PI / 6),
-        agent.tf,
-        agent_footprint);
-    }
-  } else {
-    // Classic proxemic approach
-    var_h = 0.5;
-    var_s = 0.5;
-    var_r = 0.5;
+  std::string action;
+  auto params = action_z_params_map_.find(agent.action);
+  if (params == action_z_params_map_.end()) {
+    params = action_z_params_map_.find("default");
+  }
+  
+  var_h = params->second.var_h;
+  var_r = params->second.var_r;
+  var_s = params->second.var_s;
+
+  if (params->second.n_activity_zones == 0) {
     transformProxemicFootprint(
-      social_geometry::makeProxemicShapeFromAngle(r, 2 * M_PI),
+      social_geometry::makeProxemicShapeFromAngle(
+        r, 2 * M_PI),
+      agent.tf,
+      agent_footprint);
+  } else if (params->second.n_activity_zones == 1) {
+    transformProxemicFootprint(
+      social_geometry::makeProxemicShapeFromAngle(
+        r, 2 * M_PI - params->second.activity_zone_alpha,
+        params->second.activity_zone_phi + M_PI / 6),
+      agent.tf,
+      agent_footprint);
+  } else if (params->second.n_activity_zones == 2) {
+    transformProxemicFootprint(
+      makeEscortFootprint(r, params->second.activity_zone_phi),
       agent.tf,
       agent_footprint);
   }
@@ -310,8 +350,10 @@ SocialLayer::setProxemics(
     unsigned char old_value = costmap_[index];
     if (old_value < 255) {
       costmap_[index] = std::max(old_value, cvalue);
+      social_costmap_->setCost(polygon_cells[i].x, polygon_cells[i].y, std::max(old_value, cvalue));
     } else {
       costmap_[index] = cvalue;
+      social_costmap_->setCost(polygon_cells[i].x, polygon_cells[i].y, cvalue);
     }
     //RCLCPP_INFO(node_->get_logger(), "index %u value %lu", index, cvalue);
   }
@@ -349,14 +391,14 @@ SocialLayer::transformProxemicFootprint(
 }
 
 std::vector<geometry_msgs::msg::Point>
-SocialLayer::makeEscortFootprint(float r)
+SocialLayer::makeEscortFootprint(float r, float alpha)
 {
   std::vector<geometry_msgs::msg::Point> points;
   geometry_msgs::msg::Point pt;
   pt.x = 0.0;
   pt.y = 0.0;
   points.push_back(pt);
-  float orientation = -M_PI / 4;
+  float orientation = M_PI / 4 + alpha; 
   quarterFootprint(r, orientation, points);
   orientation = orientation + M_PI;
   quarterFootprint(r, orientation, points);
