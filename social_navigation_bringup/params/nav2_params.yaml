@@ -205,6 +205,20 @@ local_costmap:
         personal_z_radius: 1.2  # Must be lower than half width and half height
         use_proxemics: True
         orientation_info: True
+        action_names: ["following", "escorting", "interacting", "default"]
+        escorting:
+          var_h: 1.0
+          var_s: 1.0
+          var_r: 1.0
+          n_activity_zones: 2
+          activity_zone_phi: 1.5707
+        following:
+          var_h: 1.0
+          var_s: 1.0
+          var_r: 0.7
+          n_activity_zones: 1
+          activity_zone_alpha: 0.7853
+          activity_zone_phi: 3.1415
 
       always_send_full_costmap: True
   local_costmap_client:
@@ -277,6 +291,27 @@ global_costmap:
         personal_z_radius: 1.2
         use_proxemics: True
         orientation_info: True
+        action_names: ["following", "escorting", "interacting", "default"]
+        escorting:
+          var_h: 1.0
+          var_s: 1.0
+          var_r: 1.0
+          n_activity_zones: 2
+          activity_zone_phi: 1.5707
+        following:
+          var_h: 1.0
+          var_s: 1.0
+          var_r: 0.7
+          n_activity_zones: 1
+          activity_zone_alpha: 0.7853
+          activity_zone_phi: 3.1415
+        following:
+          var_h: 1.0
+          var_s: 1.0
+          var_r: 0.7
+          n_activity_zones: 1
+          activity_zone_alpha: 0.7853
+          activity_zone_phi: 3.1415
       
       always_send_full_costmap: True
   global_costmap_client:
