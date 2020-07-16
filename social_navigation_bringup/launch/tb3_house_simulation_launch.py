@@ -19,9 +19,12 @@ import os
 from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription
+from launch.actions import (DeclareLaunchArgument, EmitEvent, ExecuteProcess, 
+                            IncludeLaunchDescription, RegisterEventHandler)
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.event_handlers import OnProcessExit
+from launch.events import Shutdown
 from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 
@@ -40,6 +43,7 @@ def generate_launch_description():
     params_file = LaunchConfiguration('params_file')
     bt_xml_file = LaunchConfiguration('bt_xml_file')
     autostart = LaunchConfiguration('autostart')
+    use_remappings = LaunchConfiguration('use_remappings')
 
     # Launch configuration variables specific to simulation
     rviz_config_file = LaunchConfiguration('rviz_config_file')
@@ -78,6 +82,11 @@ def generate_launch_description():
         'use_sim_time',
         default_value='true',
         description='Use simulation (Gazebo) clock if true')
+
+    declare_use_remappings_cmd = DeclareLaunchArgument(
+        'use_remappings',
+        default_value='false',
+        description='Arguments to pass to all nodes launched by the file')
 
     declare_params_file_cmd = DeclareLaunchArgument(
         'params_file',
@@ -155,16 +164,36 @@ def generate_launch_description():
         parameters=[{'use_sim_time': use_sim_time}],
         remappings=remappings,
         arguments=[urdf])
-
-    rviz_cmd = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(os.path.join(launch_dir, 'rviz_launch.py')),
+    
+    start_rviz_cmd = Node(
         condition=IfCondition(use_rviz),
-        launch_arguments={'namespace': '',
-                          'use_namespace': 'False',
-                          'rviz_config': rviz_config_file}.items())
+        package='rviz2',
+        node_executable='rviz2',
+        node_name='rviz2',
+        arguments=['-d', rviz_config_file],
+        output='screen',
+        #use_remappings=IfCondition(use_remappings),
+        #remappings=[('/tf', 'tf'),
+        #            ('/tf_static', 'tf_static'),
+        #            ('goal_pose', 'goal_pose'),
+        #            ('/clicked_point', 'clicked_point'),
+        #            ('/initialpose', 'initialpose')]
+    )
+
+    exit_event_handler = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=start_rviz_cmd,
+            on_exit=EmitEvent(event=Shutdown(reason='rviz exited'))))
+    
+    #rviz_cmd = IncludeLaunchDescription(
+    #    PythonLaunchDescriptionSource(os.path.join(launch_dir, 'rviz_launch.py')),
+    #    condition=IfCondition(use_rviz),
+    #    launch_arguments={'namespace': '',
+    #                      'use_namespace': 'False',
+    #                      'rviz_config': rviz_config_file}.items())
 
     bringup_cmd = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(os.path.join(launch_dir, 'bringup_launch.py')),
+        PythonLaunchDescriptionSource(os.path.join(launch_dir, 'nav2_bringup_launch.py')),
         launch_arguments={'namespace': namespace,
                           'use_namespace': use_namespace,
                           'map': map_yaml_file,
@@ -190,6 +219,7 @@ def generate_launch_description():
     ld.add_action(declare_params_file_cmd)
     ld.add_action(declare_bt_xml_cmd)
     ld.add_action(declare_autostart_cmd)
+    ld.add_action(declare_use_remappings_cmd)
 
     ld.add_action(declare_rviz_config_file_cmd)
     ld.add_action(declare_use_simulator_cmd)
@@ -202,10 +232,12 @@ def generate_launch_description():
     ld.add_action(start_gazebo_server_cmd)
     ld.add_action(start_gazebo_client_cmd)
     ld.add_action(agent_spawner_cmd)
+    ld.add_action(start_rviz_cmd)
+
+    ld.add_action(exit_event_handler)
 
     # Add the actions to launch all of the navigation nodes
     ld.add_action(start_robot_state_publisher_cmd)
-    ld.add_action(rviz_cmd)
     ld.add_action(bringup_cmd)
 
     return ld
