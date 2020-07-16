@@ -43,6 +43,7 @@ SocialLayer::onInitialize()
   std::vector<std::string> action_names{"default"};
 
   declareParameter("enabled", rclcpp::ParameterValue(true));
+  declareParameter("debug_only", rclcpp::ParameterValue(false));
   declareParameter(
     "footprint_clearing_enabled",
     rclcpp::ParameterValue(false));
@@ -54,6 +55,7 @@ SocialLayer::onInitialize()
   declareParameter("action_names", rclcpp::ParameterValue(action_names));
 
   node_->get_parameter(name_ + "." + "enabled", enabled_);
+  node_->get_parameter(name_ + "." + "debug_only", debug_only_);
   node_->get_parameter(
     name_ + "." + "footprint_clearing_enabled",
     footprint_clearing_enabled_);
@@ -99,7 +101,7 @@ SocialLayer::onInitialize()
   global_frame_ = layered_costmap_->getGlobalFrameID();
   rolling_window_ = layered_costmap_->isRolling();
   default_value_ = NO_INFORMATION;
-  gaussian_amplitude_ = 400.0; /* Amplitude value to get a LETHAL_OBSTACLE intimate zone */
+  gaussian_amplitude_ = 254.0; /* Amplitude value to get a LETHAL_OBSTACLE intimate zone */
   RCLCPP_INFO(node_->get_logger(),
     "Subscribed to TF Agent with prefix [%s] in global frame [%s]",
     tf_prefix_.c_str(), global_frame_.c_str());
@@ -108,7 +110,8 @@ SocialLayer::onInitialize()
   SocialLayer::matchSize();
   current_ = true;
   tf_received_= false;
-  social_costmap_ = new Costmap2D();
+  social_costmap_ = std::make_unique<Costmap2D>();
+  //social_costmap_ = new Costmap2D();
   social_costmap_->resizeMap(
     layered_costmap_->getCostmap()->getSizeInCellsX(),
     layered_costmap_->getCostmap()->getSizeInCellsY(),
@@ -133,9 +136,11 @@ SocialLayer::onInitialize()
 
   costmap_pub_ = std::make_shared<Costmap2DPublisher>(
     node_,
-    social_costmap_, global_frame_,
+    social_costmap_.get(), global_frame_,
     name_ + "/costmap", true);
   costmap_pub_->on_activate();
+  
+  if (debug_only_) {RCLCPP_WARN(node_->get_logger(), "Debug only mode activated");}
 }
 
 void
@@ -170,6 +175,8 @@ SocialLayer::updateBounds(
   double robot_x, double robot_y, double robot_yaw,
   double * min_x, double * min_y, double * max_x, double * max_y)
 {
+  
+  rclcpp::spin_some(private_node_);
   if (!enabled_ || !tf_received_) {return;}
 
   if (rolling_window_) {
@@ -228,7 +235,7 @@ SocialLayer::updateCosts(
 {
   if (!enabled_) {return;}
   updateWithMax(master_grid, min_i, min_j, max_i, max_j);
-  rclcpp::spin_some(private_node_);
+  //rclcpp::spin_some(private_node_);
 }
 
 void
@@ -274,7 +281,7 @@ SocialLayer::setProxemics(
   Agent & agent, float r, float amplitude)
 {
   std::vector<geometry_msgs::msg::Point> agent_footprint, intimate_footprint;
-  std::vector<MapLocation> polygon_cells;
+  std::vector<MapLocation> polygon_cells, intimate_cells;
   double var_h, var_s, var_r;
 
   tf2::Matrix3x3 m(agent.tf.getRotation());
@@ -320,20 +327,13 @@ SocialLayer::setProxemics(
     agent_footprint,
     polygon_cells);
 
-  // We add the intimate zone footprint to the proxemic shape polygon.
-  transformProxemicFootprint(
-    social_geometry::makeProxemicShapeFromAngle(intimate_z_radius_, 2 * M_PI),
-    agent.tf,
-    intimate_footprint);
-  social_geometry::getPolygon(
-    layered_costmap_->getCostmap(),
-    intimate_footprint,
-    polygon_cells);
+  double a, ax, ay;
+  unsigned int index;
+  unsigned char cvalue, old_value, max_value;
 
   for (unsigned int i = 0; i < polygon_cells.size(); i++) {
-    double ax, ay;
     mapToWorld(polygon_cells[i].x, polygon_cells[i].y, ax, ay);
-    double a = social_geometry::asymmetricGaussian(
+    a = social_geometry::asymmetricGaussian(
       ax,
       ay,
       agent.tf.getOrigin().x(),
@@ -345,17 +345,35 @@ SocialLayer::setProxemics(
       var_r);
     if (a > 254.0) {a = 254.0;}
     if (a <= 20.0) {continue;}
-    unsigned int index = getIndex(polygon_cells[i].x, polygon_cells[i].y);
-    unsigned char cvalue = (unsigned char) a;
-    unsigned char old_value = costmap_[index];
+    index = getIndex(polygon_cells[i].x, polygon_cells[i].y);
+    cvalue = (unsigned char) a;
+    old_value = costmap_[index];
     if (old_value < 255) {
-      costmap_[index] = std::max(old_value, cvalue);
-      social_costmap_->setCost(polygon_cells[i].x, polygon_cells[i].y, std::max(old_value, cvalue));
+      max_value = std::max(old_value, cvalue);
+      if (!debug_only_) {costmap_[index] = max_value;}
+      social_costmap_->setCost(polygon_cells[i].x, polygon_cells[i].y, max_value);
     } else {
-      costmap_[index] = cvalue;
+      if (!debug_only_) {costmap_[index] = cvalue;}
       social_costmap_->setCost(polygon_cells[i].x, polygon_cells[i].y, cvalue);
     }
     //RCLCPP_INFO(node_->get_logger(), "index %u value %lu", index, cvalue);
+  }
+
+  // We add the intimate zone footprint to the proxemic shape polygon.
+  transformProxemicFootprint(
+    social_geometry::makeProxemicShapeFromAngle(intimate_z_radius_, 2 * M_PI),
+    agent.tf,
+    intimate_footprint);
+  social_geometry::getPolygon(
+    layered_costmap_->getCostmap(),
+    intimate_footprint,
+    intimate_cells);
+  
+  cvalue = 254;
+  for (unsigned int i = 0; i < intimate_cells.size(); i++) {
+    index = getIndex(intimate_cells[i].x, intimate_cells[i].y);
+    social_costmap_->setCost(intimate_cells[i].x, intimate_cells[i].y, cvalue);
+    if (!debug_only_) {costmap_[index] = cvalue;}
   }
 }
 

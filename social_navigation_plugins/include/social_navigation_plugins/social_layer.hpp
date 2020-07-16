@@ -54,7 +54,7 @@ namespace nav2_costmap_2d
 class SocialLayer : public CostmapLayer
 {
 public:
-  SocialLayer(): social_costmap_()
+  SocialLayer(): agents_()
   {
     costmap_ = NULL;  // this is the unsigned char* member of parent class Costmap2D.
   }
@@ -129,12 +129,12 @@ protected:
   rclcpp::Subscription<KeyValue>::SharedPtr set_action_sub_;
   std::string global_frame_;  ///< @brief The global frame for the costmap
   bool footprint_clearing_enabled_, rolling_window_, use_proxemics_, orientation_info_,
-    tf_received_;
+    tf_received_, debug_only_;
   std::string tf_prefix_;
   float intimate_z_radius_, personal_z_radius_, gaussian_amplitude_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
-  nav2_costmap_2d::Costmap2D * social_costmap_;
+  std::unique_ptr<nav2_costmap_2d::Costmap2D> social_costmap_;
   std::shared_ptr<nav2_costmap_2d::Costmap2DPublisher> costmap_pub_{nullptr};
 };
 
