@@ -43,10 +43,10 @@
       </ode>
     </physics>
 
-    <model name="turtlebot3_house">
+    <model name="social_nav2_house">
       <static>1</static>
       <include>
-        <uri>model://turtlebot3_house</uri>
+        <uri>model://social_nav2_house</uri>
       </include>
     </model>
 
