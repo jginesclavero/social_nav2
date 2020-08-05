@@ -109,7 +109,6 @@ SocialLayer::onInitialize()
 
   SocialLayer::matchSize();
   current_ = true;
-  tf_received_= false;
   social_costmap_ = std::make_unique<Costmap2D>();
   //social_costmap_ = new Costmap2D();
   social_costmap_->resizeMap(
@@ -118,10 +117,7 @@ SocialLayer::onInitialize()
     layered_costmap_->getCostmap()->getResolution(),
     layered_costmap_->getCostmap()->getOriginX(),
     layered_costmap_->getCostmap()->getOriginY());
-  tf_sub_ = private_node_->create_subscription<tf2_msgs::msg::TFMessage>(
-    "tf", rclcpp::SensorDataQoS(),
-    std::bind(&SocialLayer::tfCallback, this, std::placeholders::_1));
-
+  
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(node_->get_clock());
   auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS>(
     node_->get_node_base_interface(),
@@ -141,20 +137,6 @@ SocialLayer::onInitialize()
   costmap_pub_->on_activate();
   
   if (debug_only_) {RCLCPP_WARN(node_->get_logger(), "Debug only mode activated");}
-}
-
-void
-SocialLayer::tfCallback(const tf2_msgs::msg::TFMessage::SharedPtr msg)
-{
-  for (auto tf : msg->transforms) {
-    if (tf.child_frame_id.find(tf_prefix_) != std::string::npos &&
-      agents_.find(tf.child_frame_id) == agents_.end())
-    {
-      Agent a;
-      agents_.insert(std::pair<std::string, Agent>(tf.child_frame_id, a));
-      tf_received_ = true;
-    }
-  }
 }
 
 void SocialLayer::setActionCallback(const KeyValue::SharedPtr msg)
@@ -177,7 +159,8 @@ SocialLayer::updateBounds(
 {
   
   rclcpp::spin_some(private_node_);
-  if (!enabled_ || !tf_received_) {return;}
+
+  if (!enabled_) {return;}
 
   if (rolling_window_) {
     updateOrigin(robot_x - getSizeInMetersX() / 2, robot_y - getSizeInMetersY() / 2);
@@ -259,6 +242,18 @@ bool
 SocialLayer::updateAgentMap(std::map<std::string, Agent> & agents)
 {
   geometry_msgs::msg::TransformStamped global2agent;
+
+  std::vector<std::string> frames;
+  frames = tf_buffer_->getAllFrameNames();
+  for (auto frame : frames) {
+    if (frame.find(tf_prefix_) != std::string::npos &&
+      agents.find(frame) == agents.end())
+    {
+      Agent a;
+      agents.insert(std::pair<std::string, Agent>(frame, a));
+    }
+  }
+
   for (auto agent : agents) {
     try {
       // Check if the transform is available
