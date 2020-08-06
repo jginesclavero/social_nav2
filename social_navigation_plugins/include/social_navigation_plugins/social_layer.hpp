@@ -120,7 +120,6 @@ protected:
     std::vector<geometry_msgs::msg::Point> & transformed_proxemic,
     float alpha_mod = 0.0);
   
-  rclcpp::Node::SharedPtr private_node_;
   std::vector<geometry_msgs::msg::Point> transformed_footprint_;
   std::map<std::string, Agent> agents_;
   std::map<std::string, ActionZoneParams> action_z_params_map_;

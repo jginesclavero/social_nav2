@@ -105,7 +105,6 @@ SocialLayer::onInitialize()
   RCLCPP_INFO(node_->get_logger(),
     "Subscribed to TF Agent with prefix [%s] in global frame [%s]",
     tf_prefix_.c_str(), global_frame_.c_str());
-  private_node_ = rclcpp::Node::make_shared("social_layer_sub");
 
   SocialLayer::matchSize();
   current_ = true;
@@ -125,7 +124,7 @@ SocialLayer::onInitialize()
   tf_buffer_->setCreateTimerInterface(timer_interface);
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
-  set_action_sub_ = private_node_->create_subscription<KeyValue>(
+  set_action_sub_ = rclcpp_node_->create_subscription<KeyValue>(
     "social_navigation/set_agent_action",
     rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
     std::bind(&SocialLayer::setActionCallback, this, std::placeholders::_1));
@@ -160,8 +159,6 @@ SocialLayer::updateBounds(
   double * min_x, double * min_y, double * max_x, double * max_y)
 {
   
-  rclcpp::spin_some(private_node_);
-
   if (!enabled_) {return;}
 
   if (rolling_window_) {
@@ -220,7 +217,6 @@ SocialLayer::updateCosts(
 {
   if (!enabled_) {return;}
   updateWithMax(master_grid, min_i, min_j, max_i, max_j);
-  //rclcpp::spin_some(private_node_);
 }
 
 void
@@ -264,6 +260,7 @@ SocialLayer::updateAgentMap(std::map<std::string, Agent> & agents)
       RCLCPP_WARN(node_->get_logger(), "%s", e.what());
       return false;
     }
+
     tf2::Transform global2agent_tf2;
     tf2::impl::Converter<true, false>::convert(global2agent.transform, global2agent_tf2);
     agent.second.tf = global2agent_tf2;
