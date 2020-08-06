@@ -141,15 +141,17 @@ SocialLayer::onInitialize()
 
 void SocialLayer::setActionCallback(const KeyValue::SharedPtr msg)
 {
-  auto element = action_z_params_map_.find(msg->value);
-  if (element != action_z_params_map_.end()) {
-    agents_[msg->key].action = msg->value;
-  } else {
-    RCLCPP_ERROR(node_->get_logger(),
-    "Action [%s] not declared in social_layer of [%s]",
-    msg->value.c_str(),
-    node_->get_logger().get_name());
-  }
+
+  RCLCPP_DEBUG(node_->get_logger(), msg->key.c_str());
+  //auto element = action_z_params_map_.find(msg->value);
+  //if (element != action_z_params_map_.end()) {
+  //  agents_[msg->key].action = msg->value;
+  //} else {
+  //  RCLCPP_ERROR(node_->get_logger(),
+  //  "Action [%s] not declared in social_layer of [%s]",
+  //  msg->value.c_str(),
+  //  node_->get_logger().get_name());
+  //}
 }
 
 void
@@ -265,6 +267,7 @@ SocialLayer::updateAgentMap(std::map<std::string, Agent> & agents)
     tf2::Transform global2agent_tf2;
     tf2::impl::Converter<true, false>::convert(global2agent.transform, global2agent_tf2);
     agent.second.tf = global2agent_tf2;
+    agent.second.action = "escorting";
     agents[agent.first] = agent.second;
     //RCLCPP_INFO(node_->get_logger(), "P [%f %f]", agent.second.tf.getOrigin().getX(), agent.second.tf.getOrigin().getY());
   }
