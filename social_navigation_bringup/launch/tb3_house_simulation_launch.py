@@ -200,7 +200,7 @@ def generate_launch_description():
                           'use_sim_time': use_sim_time,
                           'params_file': params_file,
                           'bt_xml_file': bt_xml_file,
-                          'autostart': autostart}.items())
+                          'autostart': autostart,}.items())
 
     agent_spawner_cmd = Node(
         package='pedsim_gazebo_plugin',
