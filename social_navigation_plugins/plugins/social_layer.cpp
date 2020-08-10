@@ -97,7 +97,6 @@ SocialLayer::onInitialize()
 
     action_z_params_map_.insert(std::pair<std::string, ActionZoneParams>(action,p));
   }
-
   global_frame_ = layered_costmap_->getGlobalFrameID();
   rolling_window_ = layered_costmap_->isRolling();
   default_value_ = NO_INFORMATION;
@@ -108,15 +107,21 @@ SocialLayer::onInitialize()
 
   SocialLayer::matchSize();
   current_ = true;
-  social_costmap_ = std::make_unique<Costmap2D>();
-  //social_costmap_ = new Costmap2D();
-  social_costmap_->resizeMap(
+  
+  social_costmap_ = std::make_shared<Costmap2D>(
     layered_costmap_->getCostmap()->getSizeInCellsX(),
     layered_costmap_->getCostmap()->getSizeInCellsY(),
     layered_costmap_->getCostmap()->getResolution(),
     layered_costmap_->getCostmap()->getOriginX(),
     layered_costmap_->getCostmap()->getOriginY());
-  
+  social_costmap_->setDefaultValue(nav2_costmap_2d::FREE_SPACE);
+
+  costmap_pub_ = std::make_shared<Costmap2DPublisher>(
+    node_,
+    social_costmap_.get(), global_frame_,
+    name_ + "/costmap", true);
+  costmap_pub_->on_activate();
+
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(node_->get_clock());
   auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS>(
     node_->get_node_base_interface(),
@@ -129,13 +134,7 @@ SocialLayer::onInitialize()
     rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
     std::bind(&SocialLayer::setActionCallback, this, std::placeholders::_1));
 
-  costmap_pub_ = std::make_shared<Costmap2DPublisher>(
-    node_,
-    social_costmap_.get(), global_frame_,
-    name_ + "/costmap", true);
-  costmap_pub_->on_activate();
-  
-  if (debug_only_) {RCLCPP_WARN(node_->get_logger(), "Debug only mode activated");}
+  if (debug_only_) {RCLCPP_WARN(node_->get_logger(), "[Social layer] Debug_only mode activated");}
 }
 
 void SocialLayer::setActionCallback(const KeyValue::SharedPtr msg)
@@ -187,13 +186,14 @@ SocialLayer::updateBounds(
     setConvexPolygonCost(transformed_footprint_, nav2_costmap_2d::FREE_SPACE);
   }
   updateFootprint(robot_x, robot_y, robot_yaw, min_x, min_y, max_x, max_y);
-
+  
   costmap_pub_->publishCostmap();
-  social_costmap_->resetMap(
-    0,
-    0,
-    social_costmap_->getSizeInCellsX(),
-    social_costmap_->getSizeInCellsY());
+  social_costmap_->resizeMap(
+    layered_costmap_->getCostmap()->getSizeInCellsX(),
+    layered_costmap_->getCostmap()->getSizeInCellsY(),
+    layered_costmap_->getCostmap()->getResolution(),
+    layered_costmap_->getCostmap()->getOriginX(),
+    layered_costmap_->getCostmap()->getOriginY());
 }
 
 void
@@ -286,13 +286,12 @@ SocialLayer::setProxemics(
   } else {
     yaw = 0.0;
   }
-
   std::string action;
   auto params = action_z_params_map_.find(agent.action);
   if (params == action_z_params_map_.end()) {
     params = action_z_params_map_.find("default");
   }
-  
+
   var_h = params->second.var_h;
   var_r = params->second.var_r;
   var_s = params->second.var_s;
@@ -339,18 +338,17 @@ SocialLayer::setProxemics(
       var_s,
       var_r);
     if (a > 254.0) {a = 254.0;}
-    if (a <= 20.0) {continue;}
+    else if (a <= 20.0) {continue;}
     index = getIndex(polygon_cells[i].x, polygon_cells[i].y);
     cvalue = (unsigned char) a;
     old_value = costmap_[index];
-    if (old_value < 255) {
+    if (old_value <= nav2_costmap_2d::LETHAL_OBSTACLE) {
       max_value = std::max(old_value, cvalue);
-      if (!debug_only_) {costmap_[index] = max_value;}
-      social_costmap_->setCost(polygon_cells[i].x, polygon_cells[i].y, max_value);
-    } else {
-      if (!debug_only_) {costmap_[index] = cvalue;}
-      social_costmap_->setCost(polygon_cells[i].x, polygon_cells[i].y, cvalue);
-    }
+      cvalue = max_value;
+    } 
+
+    if (!debug_only_) {costmap_[index] = cvalue;}
+    social_costmap_->setCost(polygon_cells[i].x, polygon_cells[i].y, cvalue);
     //RCLCPP_INFO(node_->get_logger(), "index %u value %lu", index, cvalue);
   }
 
@@ -370,6 +368,7 @@ SocialLayer::setProxemics(
     social_costmap_->setCost(intimate_cells[i].x, intimate_cells[i].y, cvalue);
     if (!debug_only_) {costmap_[index] = cvalue;}
   }
+
 }
 
 tf2::Vector3

@@ -248,7 +248,7 @@ global_costmap:
         "nav2_costmap_2d::InflationLayer",
         "social_navigation_plugins/SocialLayer"]
       robot_radius: 0.22
-      resolution: 0.1
+      resolution: 0.05
       obstacle_layer:
         enabled: True
         observation_sources: scan

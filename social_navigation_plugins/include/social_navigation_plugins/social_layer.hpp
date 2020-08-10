@@ -132,7 +132,8 @@ protected:
   float intimate_z_radius_, personal_z_radius_, gaussian_amplitude_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
-  std::unique_ptr<nav2_costmap_2d::Costmap2D> social_costmap_;
+
+  std::shared_ptr<nav2_costmap_2d::Costmap2D> social_costmap_;
   std::shared_ptr<nav2_costmap_2d::Costmap2DPublisher> costmap_pub_{nullptr};
 };
 
