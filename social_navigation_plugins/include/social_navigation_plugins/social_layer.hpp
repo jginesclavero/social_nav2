@@ -43,10 +43,11 @@
 #include "tf2_ros/transform_broadcaster.h"
 #include "tf2_ros/transform_listener.h"
 #include "diagnostic_msgs/msg/key_value.hpp"
+#include "social_navigation_msgs/msg/set_human_action.hpp"
 
 #include "social_navigation_plugins/geometry/geometry.hpp"
 
-using KeyValue = diagnostic_msgs::msg::KeyValue;
+using SetHumanAction = social_navigation_msgs::msg::SetHumanAction;
 
 namespace nav2_costmap_2d
 {
@@ -95,7 +96,7 @@ public:
    * @param message The message returned from a message notifier
    */
   void tfCallback(const tf2_msgs::msg::TFMessage::SharedPtr msg);
-  void setActionCallback(const KeyValue::SharedPtr msg);
+  void setActionCallback(const SetHumanAction::SharedPtr msg);
 
 protected:
   void doTouch(
@@ -124,10 +125,9 @@ protected:
   std::map<std::string, Agent> agents_;
   std::map<std::string, ActionZoneParams> action_z_params_map_;
   std::vector<std::string> action_names_;
-  rclcpp::Subscription<KeyValue>::SharedPtr set_action_sub_;
+  rclcpp::Subscription<SetHumanAction>::SharedPtr set_action_sub_;
   std::string global_frame_;  ///< @brief The global frame for the costmap
-  bool footprint_clearing_enabled_, rolling_window_, use_proxemics_, 
-    orientation_info_, debug_only_;
+  bool footprint_clearing_enabled_, rolling_window_, orientation_info_, debug_only_;
   std::string tf_prefix_;
   float intimate_z_radius_, personal_z_radius_, gaussian_amplitude_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
@@ -135,6 +135,8 @@ protected:
 
   std::shared_ptr<nav2_costmap_2d::Costmap2D> social_costmap_;
   std::shared_ptr<nav2_costmap_2d::Costmap2DPublisher> costmap_pub_{nullptr};
+
+
 };
 
 }  // namespace nav2_costmap_2d

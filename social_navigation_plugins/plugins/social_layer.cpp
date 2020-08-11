@@ -26,6 +26,9 @@
 
 PLUGINLIB_EXPORT_CLASS(nav2_costmap_2d::SocialLayer, nav2_costmap_2d::Layer)
 
+using std::placeholders::_1;
+using std::placeholders::_2;
+
 using nav2_costmap_2d::NO_INFORMATION;
 using nav2_costmap_2d::LETHAL_OBSTACLE;
 using nav2_costmap_2d::FREE_SPACE;
@@ -63,7 +66,6 @@ SocialLayer::onInitialize()
   node_->get_parameter(name_ + "." + "intimate_z_radius", intimate_z_radius_);
   node_->get_parameter(name_ + "." + "personal_z_radius", personal_z_radius_);
   node_->get_parameter(name_ + "." + "orientation_info", orientation_info_);
-  node_->get_parameter(name_ + "." + "use_proxemics", use_proxemics_);
   node_->get_parameter(name_ + "." + "action_names", action_names_);
 
   for (auto action : action_names_) {
@@ -129,27 +131,25 @@ SocialLayer::onInitialize()
   tf_buffer_->setCreateTimerInterface(timer_interface);
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
-  set_action_sub_ = rclcpp_node_->create_subscription<KeyValue>(
-    "social_navigation/set_agent_action",
+  set_action_sub_ = rclcpp_node_->create_subscription<SetHumanAction>(
+    "/social_navigation/set_agent_action",
     rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
     std::bind(&SocialLayer::setActionCallback, this, std::placeholders::_1));
 
   if (debug_only_) {RCLCPP_WARN(node_->get_logger(), "[Social layer] Debug_only mode activated");}
 }
 
-void SocialLayer::setActionCallback(const KeyValue::SharedPtr msg)
+void SocialLayer::setActionCallback(const SetHumanAction::SharedPtr msg)
 {
-
-  RCLCPP_DEBUG(node_->get_logger(), msg->key.c_str());
-  //auto element = action_z_params_map_.find(msg->value);
-  //if (element != action_z_params_map_.end()) {
-  //  agents_[msg->key].action = msg->value;
-  //} else {
-  //  RCLCPP_ERROR(node_->get_logger(),
-  //  "Action [%s] not declared in social_layer of [%s]",
-  //  msg->value.c_str(),
-  //  node_->get_logger().get_name());
-  //}
+  auto element = action_z_params_map_.find(msg->action);
+  if (element != action_z_params_map_.end()) {
+    agents_[msg->agent_id].action = msg->action;
+  } else {
+    RCLCPP_ERROR(rclcpp_node_->get_logger(),
+      "Action [%s] not declared in social_layer of [%s]",
+      msg->action.c_str(),
+      node_->get_logger().get_name());
+  }
 }
 
 void
@@ -176,9 +176,7 @@ SocialLayer::updateBounds(
   current_ = current;
 
   for (auto agent : agents_) {
-    if (use_proxemics_) {
-      setProxemics(agent.second, personal_z_radius_, gaussian_amplitude_);
-    }
+    setProxemics(agent.second, personal_z_radius_, gaussian_amplitude_);
     doTouch(agent.second.tf, min_x, min_y, max_x, max_y);
   }
 
@@ -248,6 +246,7 @@ SocialLayer::updateAgentMap(std::map<std::string, Agent> & agents)
       agents.find(frame) == agents.end())
     {
       Agent a;
+      a.action = "default";
       agents.insert(std::pair<std::string, Agent>(frame, a));
     }
   }
@@ -264,7 +263,6 @@ SocialLayer::updateAgentMap(std::map<std::string, Agent> & agents)
     tf2::Transform global2agent_tf2;
     tf2::impl::Converter<true, false>::convert(global2agent.transform, global2agent_tf2);
     agent.second.tf = global2agent_tf2;
-    agent.second.action = "escorting";
     agents[agent.first] = agent.second;
     //RCLCPP_INFO(node_->get_logger(), "P [%f %f]", agent.second.tf.getOrigin().getX(), agent.second.tf.getOrigin().getY());
   }
@@ -287,6 +285,7 @@ SocialLayer::setProxemics(
     yaw = 0.0;
   }
   std::string action;
+
   auto params = action_z_params_map_.find(agent.action);
   if (params == action_z_params_map_.end()) {
     params = action_z_params_map_.find("default");
@@ -349,7 +348,6 @@ SocialLayer::setProxemics(
 
     if (!debug_only_) {costmap_[index] = cvalue;}
     social_costmap_->setCost(polygon_cells[i].x, polygon_cells[i].y, cvalue);
-    //RCLCPP_INFO(node_->get_logger(), "index %u value %lu", index, cvalue);
   }
 
   // We add the intimate zone footprint to the proxemic shape polygon.
