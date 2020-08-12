@@ -194,6 +194,13 @@ def generate_launch_description():
         node_executable='spawn_pedsim_agents.py',
         node_name='spawn_pedsim_agents',
         output='screen')
+    
+    pedsim_cmd = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(os.path.join(
+            get_package_share_directory('pedsim_simulator'),
+            'launch',
+            'house_demo_crowd_launch.py'))
+    )
 
     # Create the launch description and populate
     ld = LaunchDescription()
@@ -226,5 +233,6 @@ def generate_launch_description():
     # Add the actions to launch all of the navigation nodes
     ld.add_action(start_robot_state_publisher_cmd)
     ld.add_action(bringup_cmd)
+    ld.add_action(pedsim_cmd)
 
     return ld
