@@ -32,207 +32,66 @@ from launch_ros.actions import Node
 def generate_launch_description():
     # Get the launch directory
     social_bringup_dir = get_package_share_directory('social_navigation_bringup')
-    nav_bringup_dir = get_package_share_directory('nav2_bringup')
-    launch_dir = os.path.join(nav_bringup_dir, 'launch')
+    pedsim_dir = get_package_share_directory('pedsim_simulator')
+
+    # nav_bringup_dir = get_package_share_directory('nav2_bringup')
+
+    launch_dir = os.path.join(social_bringup_dir, 'launch')
 
     # Create the launch configuration variables
     namespace = LaunchConfiguration('namespace')
-    use_namespace = LaunchConfiguration('use_namespace')
-    map_yaml_file = LaunchConfiguration('map')
-    use_sim_time = LaunchConfiguration('use_sim_time')
-    params_file = LaunchConfiguration('params_file')
-    bt_xml_file = LaunchConfiguration('bt_xml_file')
-    autostart = LaunchConfiguration('autostart')
-    use_remappings = LaunchConfiguration('use_remappings')
+    frame_id = LaunchConfiguration('frame_id')
+    scene_file = LaunchConfiguration('scene_file')
+    simulation_factor = LaunchConfiguration('simulation_factor')
 
-    # Launch configuration variables specific to simulation
-    rviz_config_file = LaunchConfiguration('rviz_config_file')
-    use_simulator = LaunchConfiguration('use_simulator')
-    use_robot_state_pub = LaunchConfiguration('use_robot_state_pub')
-    use_rviz = LaunchConfiguration('use_rviz')
-    headless = LaunchConfiguration('headless')
-    world = LaunchConfiguration('world')
+    declare_frame_id_cmd = DeclareLaunchArgument(
+        'frame_id', default_value='map', description='Reference frame')
 
-    # Map fully qualified names to relative ones so the node's namespace can be prepended.
-    # In case of the transforms (tf), currently, there doesn't seem to be a better alternative
-    # https://github.com/ros/geometry2/issues/32
-    # https://github.com/ros/robot_state_publisher/pull/30
-    # TODO(orduno) Substitute with `PushNodeRemapping`
-    #              https://github.com/ros2/launch_ros/issues/56
-    remappings = [('/tf', 'tf'),
-                  ('/tf_static', 'tf_static')]
+    declare_scene_file_cmd = DeclareLaunchArgument(
+        'scene_file', 
+        default_value=os.path.join(pedsim_dir, 'scenarios', 'tb3_house_demo_crowd.xml'),
+        description='')
 
-    # Declare the launch arguments
-    declare_namespace_cmd = DeclareLaunchArgument(
-        'namespace',
-        default_value='',
-        description='Top-level namespace')
-
-    declare_use_namespace_cmd = DeclareLaunchArgument(
-        'use_namespace',
-        default_value='false',
-        description='Whether to apply a namespace to the navigation stack')
-
-    declare_map_yaml_cmd = DeclareLaunchArgument(
-        'map',
-        default_value=os.path.join(social_bringup_dir, 'maps', 'turtlebot3_house.yaml'),
-        description='Full path to map file to load')
-
-    declare_use_sim_time_cmd = DeclareLaunchArgument(
-        'use_sim_time',
-        default_value='true',
-        description='Use simulation (Gazebo) clock if true')
-
-    declare_use_remappings_cmd = DeclareLaunchArgument(
-        'use_remappings',
-        default_value='false',
-        description='Arguments to pass to all nodes launched by the file')
-
-    declare_params_file_cmd = DeclareLaunchArgument(
-        'params_file',
-        default_value=os.path.join(social_bringup_dir, 'params', 'nav2_params.yaml'),
-        description='Full path to the ROS2 parameters file to use for all launched nodes')
-
-    declare_bt_xml_cmd = DeclareLaunchArgument(
-        'bt_xml_file',
-        default_value=os.path.join(
-            get_package_share_directory('nav2_bt_navigator'),
-            'behavior_trees', 'navigate_w_replanning_and_recovery.xml'),
-        description='Full path to the behavior tree xml file to use')
-
-    declare_autostart_cmd = DeclareLaunchArgument(
-        'autostart', default_value='true',
-        description='Automatically startup the nav2 stack')
-
-    declare_rviz_config_file_cmd = DeclareLaunchArgument(
-        'rviz_config_file',
-        default_value=os.path.join(social_bringup_dir, 'rviz', 'nav2_default_view.rviz'),
-        description='Full path to the RVIZ config file to use')
-
-    declare_use_simulator_cmd = DeclareLaunchArgument(
-        'use_simulator',
-        default_value='True',
-        description='Whether to start the simulator')
-
-    declare_use_robot_state_pub_cmd = DeclareLaunchArgument(
-        'use_robot_state_pub',
-        default_value='True',
-        description='Whether to start the robot state publisher')
-
-    declare_use_rviz_cmd = DeclareLaunchArgument(
-        'use_rviz',
-        default_value='True',
-        description='Whether to start RVIZ')
-
-    declare_simulator_cmd = DeclareLaunchArgument(
-        'headless',
-        default_value='True',
-        description='Whether to execute gzclient)')
-
-    declare_world_cmd = DeclareLaunchArgument(
-        'world',
-        # TODO(orduno) Switch back once ROS argument passing has been fixed upstream
-        #              https://github.com/ROBOTIS-GIT/turtlebot3_simulations/issues/91
-        # default_value=os.path.join(get_package_share_directory('turtlebot3_gazebo'),
-        #                            'worlds/turtlebot3_worlds/waffle.model'),
-        default_value=os.path.join(social_bringup_dir, 'worlds', 'waffle_house.model'),
-        description='Full path to world model file to load')
-
+    declare_simulation_factor_cmd = DeclareLaunchArgument(
+        'simulation_factor', default_value='0.07',
+        description='Simulator factor. 0.0 to get static agents')
     # Specify the actions
-    start_gazebo_server_cmd = ExecuteProcess(
-        condition=IfCondition(use_simulator),
-        cmd=['gzserver', 
-        '-s', 'libgazebo_ros_init.so',
-        '-s', 'libgazebo_ros_factory.so',
-        world],
-        cwd=[launch_dir], output='screen')
 
-    start_gazebo_client_cmd = ExecuteProcess(
-        condition=IfCondition(PythonExpression([use_simulator, ' and not ', headless])),
-        cmd=['gzclient'],
-        cwd=[launch_dir], output='screen')
+    social_nav_bringup_cmd = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(os.path.join(launch_dir, 'tb3_house_simulation_launch.py')))
 
-    urdf = os.path.join(social_bringup_dir, 'urdf', 'turtlebot3_waffle.urdf')
-
-    start_robot_state_publisher_cmd = Node(
-        condition=IfCondition(use_robot_state_pub),
-        package='robot_state_publisher',
-        node_executable='robot_state_publisher',
-        node_name='robot_state_publisher',
-        node_namespace=namespace,
-        output='screen',
-        parameters=[{'use_sim_time': use_sim_time}],
-        remappings=remappings,
-        arguments=[urdf])
-    
-    start_rviz_cmd = Node(
-        condition=IfCondition(use_rviz),
-        package='rviz2',
-        node_executable='rviz2',
-        node_name='rviz2',
-        arguments=['-d', rviz_config_file],
-        output='screen',
-    )
-
-    exit_event_handler = RegisterEventHandler(
-        event_handler=OnProcessExit(
-            target_action=start_rviz_cmd,
-            on_exit=EmitEvent(event=Shutdown(reason='rviz exited'))))
-    
-    bringup_cmd = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(os.path.join(launch_dir, 'nav2_bringup_launch.py')),
-        launch_arguments={'namespace': namespace,
-                          'use_namespace': use_namespace,
-                          'map': map_yaml_file,
-                          'use_sim_time': use_sim_time,
-                          'params_file': params_file,
-                          'bt_xml_file': bt_xml_file,
-                          'autostart': autostart,}.items())
-
-    agent_spawner_cmd = Node(
-        package='pedsim_gazebo_plugin',
-        node_executable='spawn_pedsim_agents.py',
-        node_name='spawn_pedsim_agents',
-        output='screen')
-    
     pedsim_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(
-            get_package_share_directory('pedsim_simulator'),
+            get_package_share_directory('pedsim_simulator'), 
             'launch',
-            'house_demo_crowd_launch.py'))
+            'simulator_launch.py')),
+        launch_arguments={'scene_file': scene_file,
+                          'simulation_factor': simulation_factor}.items())
+
+    pedsim_visualizer_cmd = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(get_package_share_directory('pedsim_visualizer'), 'launch', 'visualizer_launch.py')),
+        launch_arguments={'frame_id': frame_id}.items()
+    )
+
+    dummy_set_agent_action_cmd = Node(
+        package='social_navigation_tooling',
+        node_executable='dummy_set_agent_action',
+        node_name='dummy_set_agent_action',
+        output='screen'
     )
 
     # Create the launch description and populate
     ld = LaunchDescription()
 
     # Declare the launch options
-    ld.add_action(declare_namespace_cmd)
-    ld.add_action(declare_use_namespace_cmd)
-    ld.add_action(declare_map_yaml_cmd)
-    ld.add_action(declare_use_sim_time_cmd)
-    ld.add_action(declare_params_file_cmd)
-    ld.add_action(declare_bt_xml_cmd)
-    ld.add_action(declare_autostart_cmd)
-    ld.add_action(declare_use_remappings_cmd)
-
-    ld.add_action(declare_rviz_config_file_cmd)
-    ld.add_action(declare_use_simulator_cmd)
-    ld.add_action(declare_use_robot_state_pub_cmd)
-    ld.add_action(declare_use_rviz_cmd)
-    ld.add_action(declare_simulator_cmd)
-    ld.add_action(declare_world_cmd)
-
+    ld.add_action(declare_scene_file_cmd)
+    ld.add_action(declare_simulation_factor_cmd)
+    ld.add_action(declare_frame_id_cmd)
+    ld.add_action(dummy_set_agent_action_cmd)
     # Add any conditioned actions
-    ld.add_action(start_gazebo_server_cmd)
-    ld.add_action(start_gazebo_client_cmd)
-    ld.add_action(agent_spawner_cmd)
-    ld.add_action(start_rviz_cmd)
-
-    ld.add_action(exit_event_handler)
-
-    # Add the actions to launch all of the navigation nodes
-    ld.add_action(start_robot_state_publisher_cmd)
-    ld.add_action(bringup_cmd)
     ld.add_action(pedsim_cmd)
+    ld.add_action(pedsim_visualizer_cmd)
+    ld.add_action(social_nav_bringup_cmd)
 
     return ld

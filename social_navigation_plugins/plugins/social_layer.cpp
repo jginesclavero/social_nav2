@@ -133,7 +133,7 @@ SocialLayer::onInitialize()
 
   set_action_sub_ = rclcpp_node_->create_subscription<SetHumanAction>(
     "/social_navigation/set_agent_action",
-    rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
+    rclcpp::QoS(rclcpp::KeepLast(10)).transient_local().reliable(),
     std::bind(&SocialLayer::setActionCallback, this, std::placeholders::_1));
 
   if (debug_only_) {RCLCPP_WARN(node_->get_logger(), "[Social layer] Debug_only mode activated");}
@@ -360,7 +360,7 @@ SocialLayer::setProxemics(
     intimate_footprint,
     intimate_cells);
   
-  cvalue = 254;
+  cvalue = 252;
   for (unsigned int i = 0; i < intimate_cells.size(); i++) {
     index = getIndex(intimate_cells[i].x, intimate_cells[i].y);
     social_costmap_->setCost(intimate_cells[i].x, intimate_cells[i].y, cvalue);

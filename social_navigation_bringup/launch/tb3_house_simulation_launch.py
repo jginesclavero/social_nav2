@@ -96,7 +96,7 @@ def generate_launch_description():
     declare_bt_xml_cmd = DeclareLaunchArgument(
         'bt_xml_file',
         default_value=os.path.join(
-            get_package_share_directory('nav2_bt_navigator'),
+            get_package_share_directory('social_navigation_bringup'),
             'behavior_trees', 'navigate_w_replanning_and_recovery.xml'),
         description='Full path to the behavior tree xml file to use')
 
@@ -126,7 +126,7 @@ def generate_launch_description():
 
     declare_simulator_cmd = DeclareLaunchArgument(
         'headless',
-        default_value='True',
+        default_value='False',
         description='Whether to execute gzclient)')
 
     declare_world_cmd = DeclareLaunchArgument(

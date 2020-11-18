@@ -8,10 +8,10 @@ Panels:
         - /TF1/Frames1
         - /TF1/Tree1
         - /Amcl Particle Swarm1/Topic1
-        - /Global Planner1/Global Costmap1
-        - /Path1
-      Splitter Ratio: 0.6970587968826294
-    Tree Height: 539
+        - /TrackedPersons1
+        - /Marker1/Topic1
+      Splitter Ratio: 0.48941799998283386
+    Tree Height: 721
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -50,21 +50,21 @@ Visualization Manager:
     - Alpha: 1
       Class: rviz_default_plugins/RobotModel
       Collision Enabled: false
-      Description File: ""
-      Description Source: Topic
+      Description File: /home/ubuntu/social_nav2_ws/src/turtlebot3/turtlebot3/turtlebot3_description/urdf/turtlebot3_waffle.urdf
+      Description Source: File
       Description Topic:
         Depth: 5
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /robot_description
+        Value: ""
       Enabled: false
       Links:
         All Links Enabled: true
         Expand Joint Details: false
         Expand Link Details: false
         Expand Tree: false
-        Link Tree Style: ""
+        Link Tree Style: Links in Alphabetic Order
       Name: RobotModel
       TF Prefix: ""
       Update Interval: 0
@@ -76,8 +76,6 @@ Visualization Manager:
       Frames:
         All Enabled: false
         agent_1:
-          Value: true
-        agent_2:
           Value: true
         base_footprint:
           Value: true
@@ -118,8 +116,6 @@ Visualization Manager:
         map:
           agent_1:
             {}
-          agent_2:
-            {}
           odom:
             base_footprint:
               base_link:
@@ -145,7 +141,7 @@ Visualization Manager:
       Update Interval: 0
       Value: true
     - Alpha: 1
-      Autocompute Intensity Bounds: true
+      Autocompute Intensity Bounds: false
       Autocompute Value Bounds:
         Max Value: 10
         Min Value: -10
@@ -156,7 +152,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: Intensity
       Decay Time: 0
-      Enabled: false
+      Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Max Intensity: 0
@@ -176,7 +172,7 @@ Visualization Manager:
         Value: /scan
       Use Fixed Frame: true
       Use rainbow: true
-      Value: false
+      Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -431,7 +427,7 @@ Visualization Manager:
           Color: 255; 255; 255
           Color Transformer: RGB8
           Decay Time: 0
-          Enabled: true
+          Enabled: false
           Invert Rainbow: false
           Max Color: 255; 255; 255
           Max Intensity: 4096
@@ -451,7 +447,7 @@ Visualization Manager:
             Value: /local_costmap/voxel_marked_cloud
           Use Fixed Frame: true
           Use rainbow: true
-          Value: true
+          Value: false
       Enabled: true
       Name: Controller
     - Class: rviz_common/Group
@@ -574,7 +570,7 @@ Visualization Manager:
       Buffer Length: 1
       Class: rviz_default_plugins/Path
       Color: 245; 121; 0
-      Enabled: false
+      Enabled: true
       Head Diameter: 0.30000001192092896
       Head Length: 0.20000000298023224
       Length: 0.30000001192092896
@@ -596,7 +592,67 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /social_nav_exp/robot_path
-      Value: false
+      Value: true
+    - Alpha: 1
+      Class: spencer_tracking_rviz_plugin/TrackedPersons
+      Color: 130; 130; 130
+      Color map offset: 0
+      Color transform: Rainbow
+      Delete after no. cycles: 100
+      Enabled: true
+      Excluded person IDs: ""
+      Font color: 255; 255; 255
+      Font color style: Same color
+      Font scale: 2
+      History as line:
+        Line width: 0.05000000074505806
+        Value: false
+      History size: 100
+      Included person IDs: ""
+      Min. history point distance: 0.4000000059604645
+      Missed alpha: 0.5
+      Name: TrackedPersons
+      Occlusion alpha: 0.30000001192092896
+      Render covariances:
+        Line width: 0.10000000149011612
+        Value: false
+      Render detection IDs: false
+      Render history: false
+      Render person visual: true
+      Render track IDs: false
+      Render track state: false
+      Render velocities: true
+      Show DELETED tracks: false
+      Show MATCHED tracks: true
+      Show MISSED tracks: true
+      Show OCCLUDED tracks: true
+      Style:
+        Line width: 0.05000000074505806
+        Scaling factor: 1
+        Value: Cylinders
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /pedsim_visualizer/tracked_persons
+      Tracking frame: odom
+      Value: true
+      Z offset:
+        Use Z position from message: false
+        Value: 0
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: Marker
+      Namespaces:
+        "": true
+      Topic:
+        Depth: 1
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /pedsim_visualizer/walls
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -632,35 +688,35 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 12.079534530639648
+      Distance: 10.458611488342285
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.15060174465179443
-        Y: 0.039687976241111755
-        Z: 1.2324351072311401
+        X: -0.2302454710006714
+        Y: 0.3717423379421234
+        Z: 0.15721672773361206
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5697963237762451
-      Target Frame: map
+      Pitch: 1.1847962141036987
+      Target Frame: base_footprint
       Value: Orbit (rviz_default_plugins)
-      Yaw: 4.717422962188721
+      Yaw: 3.9624314308166504
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: true
-  Height: 879
+  Height: 995
   Hide Left Dock: true
   Hide Right Dock: true
   Navigation 2:
     collapsed: true
-  QMainWindow State: 000000ff00000000fd00000004000000000000015600000315fc020000000afb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073000000003d00000258000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb00000018004e0061007600690067006100740069006f006e00200032000000029b000000b7000000b700fffffffb0000001e005200650061006c00730065006e0073006500430061006d00650072006100000002c6000000c10000002800ffffff000000010000010f00000287fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003d00000287000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004420000003efc0100000002fb0000000800540069006d00650100000000000004420000000000000000fb0000000800540069006d00650100000000000004500000000000000000000005780000031500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000004000000000000017c0000038dfc020000000afb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073000000003b0000030c000000c700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb00000018004e0061007600690067006100740069006f006e00200032000000034d0000007b0000007b00fffffffb0000001e005200650061006c00730065006e0073006500430061006d00650072006100000002c6000000c10000002800ffffff000000010000010f0000038dfc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003b0000038d000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004420000003efc0100000002fb0000000800540069006d00650100000000000004420000000000000000fb0000000800540069006d00650100000000000004500000000000000000000006900000038d00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   RealsenseCamera:
     collapsed: false
   Selection:
@@ -669,6 +725,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: true
-  Width: 1400
-  X: 97
-  Y: 57
+  Width: 1680
+  X: 0
+  Y: 27

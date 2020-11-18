@@ -204,7 +204,7 @@ local_costmap:
           var_h: 1.0
           var_s: 1.0
           var_r: 1.0
-          n_activity_zones: 2
+          n_activity_zones: 0
           activity_zone_phi: 1.5707
         following:
           var_h: 1.0
@@ -214,7 +214,7 @@ local_costmap:
           activity_zone_alpha: 0.7853
           activity_zone_phi: 3.1415
         approaching:
-          var_h: 0.8
+          var_h: 1.0
           var_s: 1.0
           var_r: 1.0
           n_activity_zones: 1
@@ -297,7 +297,7 @@ global_costmap:
           var_h: 1.0
           var_s: 1.0
           var_r: 1.0
-          n_activity_zones: 2
+          n_activity_zones: 0
           activity_zone_phi: 1.5707
         following:
           var_h: 1.0
