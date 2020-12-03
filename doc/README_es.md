@@ -6,6 +6,8 @@ Poder respresentar estás zonas en el mapa del robot resulta muy útil si querem
 ya que permite representar de forma distinta a un humano de un obstáculo. Este es un proyecto de software libre y en pleno desarrollo, 
 por lo que se agradece cualquier contribución.
 
+![demo](https://github.com/jginesclavero/social_navigation2/blob/master/doc/demo.gif?raw=true)
+
 ## Cita
 Si usas social_layer, construyes tus aplicaciones usando este framework como base, o coges ideas de nuestro trabajo, por favor citanos en tus publicaciones!
  - J. Clavero, F. Martin, FJ. Rodriguez, JM. Hernandez, V.Matellan 
