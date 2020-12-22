@@ -33,6 +33,7 @@ Para poder realizar la representación de las personas es necesario alimentar al
 se utiliza el arbol de TFs como entrada, por lo que habrá que publicar la posición y orientación de las personas en este árbol.
 Estás TFs pueden ser obtenidas de un sistema de MotionCapture, de un simulador como PedSim o de un sistema de vision abordo del robot.
 Normalmente se establecerá un prefijo seguido de un número para tener una TF por cada persona, por ejemplo, "agente_1", "agente_2", "human1", "human2", etc.
+
 ![agent_tf](https://github.com/jginesclavero/social_navigation2/blob/master/doc/agent_w_tf.png)
 
 ### Output
@@ -46,21 +47,53 @@ para despues establecer su zona de proxemia.
 
 #### Parámetros
 Parámetros de configuración. Se especifican en el mismo fichero de parámetros de nav2.
-- tf_prefix: Prefijo para identificar las TF correspondientes a las personas
-- filter_radius: Radio del filtro, por defecto 0.45m.
+- tf_prefix [string]: Prefijo para identificar las TF correspondientes a las personas
+- filter_radius [float]: Radio del filtro, por defecto 0.45m.
 
 ### Social_layer
 Plugin central del sistema. Es el encargado de crear las zonas de proxemia. Estas zonas de proxemia son totalmente configurables gracias a que son creadas usando
 una función [Gausiana Asimétrica](https://ri.cmu.edu/pub_files/2010/5/rk_thesis.pdf). Podemos configurar las zonas usando var_h, var_r y var_s para cada uno de los agentes.
+
+<img src="https://github.com/jginesclavero/social_navigation2/blob/master/doc/asymmetric_gaussian.png" width="400">
  
 #### Parámetros
 Parámetros de configuración. Se especifican en el mismo fichero de parámetros de nav2.
-- tf_prefix: Prefijo para identificar las TF correspondientes a las personas
-- filter_radius: Radio del filtro, por defecto 0.45m.
+- tf_prefix [string]: Prefijo para identificar las TF correspondientes a las personas
+- intimate_z_radius [float]: Radio de la zona intima. Esta zona será no transitable para el robot.
+- personal_z_radius [float]: Radio de la zona personal. Radio total de la zona que se representa.
+- orientation_info [bool]: Indicamos si queremos que las zonas de proxemia tengan orientación. 
+- var_h [float]: 1.2 por defecto.
+- var_s [float]: 1.2 por defecto.
+- var_r [float]: 1.2 por defecto.
 
 #### Zona de cooperacion
+Las zonas de cooperación son opcionales y nos permiten crear zonas libres en las que poder realizar actividades cooperativas con humanos como interaccionar, seguirlos o acompañarlos andando a su lado. 
+Debemos definir, por tanto, una acción y configurarla como queramos. A continuación se muestran algunos ejemplos de uso y de como se representan las personas cuando se establecen estas zonas.
 
+HRI      |  Escort action 
+:-------------------------:|:-------------------------:
+![hri](https://github.com/jginesclavero/social_navigation2/blob/master/doc/hri.png) | ![escort](https://github.com/jginesclavero/social_navigation2/blob/master/doc/escort.png)
+
+##### Parámetros de la zona de cooperacion. [Ver este ejemplo](https://github.com/jginesclavero/social_navigation2/blob/1c1118518a01c9c47358ad0e195b25f11f6e1300/social_navigation_bringup/params/nav2_params.yaml#L202-L208)
+- var_h
+- var_s
+- var_r
+- n_activity_zones: Numero de zonas de actividad, entre 0 y 2, para cada acción. 
+- activity_zone_phi: Angulo de la zona de actividad.
+  
 ## Uso
+Para hacer uso de social_layer, incluimos este repositorio en nuestro workspace y compilamos. Tras esto, añadimos a nuestro fichero de configuración de nav2 la configuración específica del social_layer. [Un ejemplo completo aquí](https://github.com/jginesclavero/social_navigation2/blob/master/social_navigation_bringup/params/nav2_params.yaml)
 
 ## Demo
-
+### Dependencias.
+Para poder simular la posición de las personas es necesario descargar y compilar [PedSim](http://pedsim.silmaril.org/). En este caso, usamos su versión en ROS2. 
+```console
+  cd ros2_ws/src
+  git clone --recursive https://github.com/jginesclavero/pedsim_ros
+  cd ..
+  colcon build --symlink-install
+```
+Finalmente, ejecutamos la demo.
+```console
+  ros2 launch social_navigation_bringup demo_launch.py
+```
