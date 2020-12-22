@@ -67,37 +67,51 @@ SocialLayer::onInitialize()
   node_->get_parameter(name_ + "." + "personal_z_radius", personal_z_radius_);
   node_->get_parameter(name_ + "." + "orientation_info", orientation_info_);
   node_->get_parameter(name_ + "." + "action_names", action_names_);
-
-  for (auto action : action_names_) {
-    ActionZoneParams p;
-    if (orientation_info_) {
-      declareParameter(action + "." + "var_h", rclcpp::ParameterValue(0.9));
-      declareParameter(action + "." + "var_s", rclcpp::ParameterValue(0.9));
-      declareParameter(action + "." + "var_r", rclcpp::ParameterValue(1.2));
-    } else {
-      declareParameter(action + "." + "var_h", rclcpp::ParameterValue(1.2));
-      declareParameter(action + "." + "var_s", rclcpp::ParameterValue(1.2));
-      declareParameter(action + "." + "var_r", rclcpp::ParameterValue(1.2));
-    }
+  if (action_names_.size() > 1) {
+    for (auto action : action_names_) {
+      ActionZoneParams p;
+      if (orientation_info_) {
+        declareParameter(action + "." + "var_h", rclcpp::ParameterValue(0.9));
+        declareParameter(action + "." + "var_s", rclcpp::ParameterValue(0.9));
+        declareParameter(action + "." + "var_r", rclcpp::ParameterValue(1.2));
+      } else {
+        declareParameter(action + "." + "var_h", rclcpp::ParameterValue(1.2));
+        declareParameter(action + "." + "var_s", rclcpp::ParameterValue(1.2));
+        declareParameter(action + "." + "var_r", rclcpp::ParameterValue(1.2));
+      }
     
-    declareParameter(action + "." + "n_activity_zones", rclcpp::ParameterValue(0));
-    declareParameter(action + "." + "activity_zone_alpha", rclcpp::ParameterValue(0.0));
-    declareParameter(action + "." + "activity_zone_phi", rclcpp::ParameterValue(0.0));
+      declareParameter(action + "." + "n_activity_zones", rclcpp::ParameterValue(0));
+      declareParameter(action + "." + "activity_zone_alpha", rclcpp::ParameterValue(0.0));
+      declareParameter(action + "." + "activity_zone_phi", rclcpp::ParameterValue(0.0));
 
-    node_->get_parameter(name_ + "." + action + "." + "var_h", p.var_h);
-    node_->get_parameter(name_ + "." + action + "." + "var_s", p.var_s);
-    node_->get_parameter(name_ + "." + action + "." + "var_r", p.var_r);
-    node_->get_parameter(name_ + "." + action + "." + "n_activity_zones", p.n_activity_zones);
-    node_->get_parameter(name_ + "." + action + "." + "activity_zone_alpha", p.activity_zone_alpha);
-    node_->get_parameter(name_ + "." + action + "." + "activity_zone_phi", p.activity_zone_phi);
+      node_->get_parameter(name_ + "." + action + "." + "var_h", p.var_h);
+      node_->get_parameter(name_ + "." + action + "." + "var_s", p.var_s);
+      node_->get_parameter(name_ + "." + action + "." + "var_r", p.var_r);
+      node_->get_parameter(name_ + "." + action + "." + "n_activity_zones", p.n_activity_zones);
+      node_->get_parameter(name_ + "." + action + "." + "activity_zone_alpha", p.activity_zone_alpha);
+      node_->get_parameter(name_ + "." + action + "." + "activity_zone_phi", p.activity_zone_phi);
 
+      RCLCPP_INFO(node_->get_logger(), 
+      "Action [%s] params: var_h [%f], var_s [%f], var_r [%f], n_activity_zones [%i], "
+      "activity_zone_alpha [%f], activity_zone_alpha [%f]",
+      action.c_str(), p.var_h, p.var_s, p.var_r, p.n_activity_zones, 
+      p.activity_zone_alpha, p.activity_zone_phi);
+
+      action_z_params_map_.insert(std::pair<std::string, ActionZoneParams>(action, p));
+    }
+  } else {
+    ActionZoneParams p;
+    declareParameter("var_h", rclcpp::ParameterValue(1.2));
+    declareParameter("var_s", rclcpp::ParameterValue(1.2));
+    declareParameter("var_r", rclcpp::ParameterValue(1.2));
+    node_->get_parameter(name_ + "." + "var_h", p.var_h);
+    node_->get_parameter(name_ + "." + "var_s", p.var_s);
+    node_->get_parameter(name_ + "." + "var_r", p.var_r);
+    p.n_activity_zones = 0;
     RCLCPP_INFO(node_->get_logger(), 
-    "Action [%s] params: var_h [%f], var_s [%f], var_r [%f], n_activity_zones [%i], "
-    "activity_zone_alpha [%f], activity_zone_alpha [%f]",
-    action.c_str(), p.var_h, p.var_s, p.var_r, p.n_activity_zones, 
-    p.activity_zone_alpha, p.activity_zone_phi);
-
-    action_z_params_map_.insert(std::pair<std::string, ActionZoneParams>(action,p));
+      "Basic proxemics params: var_h [%f], var_s [%f], var_r [%f]",
+      p.var_h, p.var_s, p.var_r);
+    action_z_params_map_.insert(std::pair<std::string, ActionZoneParams>("default", p));
   }
   global_frame_ = layered_costmap_->getGlobalFrameID();
   rolling_window_ = layered_costmap_->isRolling();
