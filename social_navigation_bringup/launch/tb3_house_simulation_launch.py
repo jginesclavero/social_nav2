@@ -180,7 +180,7 @@ def generate_launch_description():
             on_exit=EmitEvent(event=Shutdown(reason='rviz exited'))))
     
     bringup_cmd = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(os.path.join(launch_dir, 'nav2_bringup_launch.py')),
+        PythonLaunchDescriptionSource(os.path.join(launch_dir, 'bringup_launch.py')),
         launch_arguments={'namespace': namespace,
                           'use_namespace': use_namespace,
                           'map': map_yaml_file,
