@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SOCIAL_NAV_PLUGINS__GEOMETRY__GEOMETRY_HPP_
-#define SOCIAL_NAV_PLUGINS__GEOMETRY__GEOMETRY_HPP_
+#ifndef SOCIAL_NAVIGATION_PLUGINS__GEOMETRY__GEOMETRY_HPP_
+#define SOCIAL_NAVIGATION_PLUGINS__GEOMETRY__GEOMETRY_HPP_
 
-#include <boost/geometry.hpp>
-#include <boost/geometry/geometries/point_xy.hpp>
-#include <boost/geometry/geometries/polygon.hpp>
+#include <vector>
+#include "boost/geometry.hpp"
+#include "boost/geometry/geometries/point_xy.hpp"
+#include "boost/geometry/geometries/polygon.hpp"
 
 #include "nav2_costmap_2d/costmap_layer.hpp"
 #include "nav2_costmap_2d/layered_costmap.hpp"
@@ -26,7 +27,7 @@
 
 typedef boost::geometry::model::d2::point_xy<double> point_type;
 typedef boost::geometry::model::polygon<point_type> polygon_type;
-using namespace nav2_costmap_2d;
+using nav2_costmap_2d::MapLocation;
 
 namespace social_geometry
 {
@@ -46,6 +47,5 @@ double gaussian(
 double asymmetricGaussian(
   double x, double y, double x0, double y0,
   double A, double angle, double var_h, double var_s, double var_r);
-}
-// namespace social_geometry
-#endif  // SOCIAL_NAV_PLUGINS__GEOMETRY__GEOMETRY_HPP_
+}  // namespace social_geometry
+#endif  // SOCIAL_NAVIGATION_PLUGINS__GEOMETRY__GEOMETRY_HPP_

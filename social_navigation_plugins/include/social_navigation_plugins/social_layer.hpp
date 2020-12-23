@@ -14,12 +14,13 @@
 
 // Author: jginesclavero
 
-#ifndef SOCIAL_NAV_PLUGINS__SOCIAL_LAYER_HPP_
-#define SOCIAL_NAV_PLUGINS__SOCIAL_LAYER_HPP_
+#ifndef SOCIAL_NAVIGATION_PLUGINS__SOCIAL_LAYER_HPP_
+#define SOCIAL_NAVIGATION_PLUGINS__SOCIAL_LAYER_HPP_
 
 #include <memory>
 #include <string>
 #include <vector>
+#include <map>
 
 #include "rclcpp/rclcpp.hpp"
 #pragma GCC diagnostic push
@@ -34,7 +35,7 @@
 #include "nav2_costmap_2d/footprint.hpp"
 #include "nav2_costmap_2d/costmap_2d_publisher.hpp"
 
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 #include "tf2/transform_datatypes.h"
 #include "tf2/LinearMath/Transform.h"
 #include "tf2_msgs/msg/tf_message.hpp"
@@ -55,7 +56,8 @@ namespace nav2_costmap_2d
 class SocialLayer : public CostmapLayer
 {
 public:
-  SocialLayer(): agents_()
+  SocialLayer()
+  : agents_()
   {
     costmap_ = NULL;  // this is the unsigned char* member of parent class Costmap2D.
   }
@@ -120,8 +122,8 @@ protected:
     tf2::Transform tf,
     std::vector<geometry_msgs::msg::Point> & transformed_proxemic,
     float alpha_mod = 0.0);
-    
-  void clearArea(int start_x, int start_y, int end_x, int end_y) {
+  void clearArea(int start_x, int start_y, int end_x, int end_y)
+  {
     unsigned char * grid = getCharMap();
 
     for (int x = 0; x < static_cast<int>(getSizeInCellsX()); x++) {
@@ -151,10 +153,8 @@ protected:
 
   std::shared_ptr<nav2_costmap_2d::Costmap2D> social_costmap_;
   std::shared_ptr<nav2_costmap_2d::Costmap2DPublisher> costmap_pub_{nullptr};
-
-
 };
 
 }  // namespace nav2_costmap_2d
 
-#endif  // SOCIAL_NAV_PLUGINS__SOCIAL_LAYER_HPP_
+#endif  // SOCIAL_NAVIGATION_PLUGINS__SOCIAL_LAYER_HPP_

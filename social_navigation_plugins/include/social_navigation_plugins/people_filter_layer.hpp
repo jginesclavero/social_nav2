@@ -14,8 +14,8 @@
 
 // Author: jginesclavero
 
-#ifndef SOCIAL_NAV_PLUGINS__PEOPLE_FILTER_LAYER_HPP_
-#define SOCIAL_NAV_PLUGINS__PEOPLE_FILTER_LAYER_HPP_
+#ifndef SOCIAL_NAVIGATION_PLUGINS__PEOPLE_FILTER_LAYER_HPP_
+#define SOCIAL_NAVIGATION_PLUGINS__PEOPLE_FILTER_LAYER_HPP_
 
 #include <memory>
 #include <string>
@@ -33,7 +33,7 @@
 #include "nav2_costmap_2d/observation_buffer.hpp"
 #include "nav2_costmap_2d/footprint.hpp"
 
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 #include "tf2/transform_datatypes.h"
 #include "tf2/LinearMath/Transform.h"
 #include "tf2_msgs/msg/tf_message.hpp"
@@ -85,8 +85,8 @@ protected:
     double robot_x, double robot_y, double robot_yaw, double * min_x,
     double * min_y, double * max_x, double * max_y);
   void agentFilter(tf2::Transform agent, float r);
-  
-  void clearArea(int start_x, int start_y, int end_x, int end_y) {
+  void clearArea(int start_x, int start_y, int end_x, int end_y)
+  {
     unsigned char * grid = getCharMap();
 
     for (int x = 0; x < static_cast<int>(getSizeInCellsX()); x++) {
@@ -116,4 +116,4 @@ protected:
 
 }  // namespace nav2_costmap_2d
 
-#endif  // SOCIAL_NAV_PLUGINS__PEOPLE_FILTER_LAYER_HPP_
+#endif  // SOCIAL_NAVIGATION_PLUGINS__PEOPLE_FILTER_LAYER_HPP_

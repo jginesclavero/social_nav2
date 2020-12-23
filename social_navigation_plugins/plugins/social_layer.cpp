@@ -20,6 +20,8 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <utility>
+#include <map>
 
 #include "pluginlib/class_list_macros.hpp"
 #include "nav2_costmap_2d/costmap_math.hpp"
@@ -79,7 +81,6 @@ SocialLayer::onInitialize()
         declareParameter(action + "." + "var_s", rclcpp::ParameterValue(1.2));
         declareParameter(action + "." + "var_r", rclcpp::ParameterValue(1.2));
       }
-    
       declareParameter(action + "." + "n_activity_zones", rclcpp::ParameterValue(0));
       declareParameter(action + "." + "activity_zone_alpha", rclcpp::ParameterValue(0.0));
       declareParameter(action + "." + "activity_zone_phi", rclcpp::ParameterValue(0.0));
@@ -87,15 +88,19 @@ SocialLayer::onInitialize()
       node_->get_parameter(name_ + "." + action + "." + "var_h", p.var_h);
       node_->get_parameter(name_ + "." + action + "." + "var_s", p.var_s);
       node_->get_parameter(name_ + "." + action + "." + "var_r", p.var_r);
-      node_->get_parameter(name_ + "." + action + "." + "n_activity_zones", p.n_activity_zones);
-      node_->get_parameter(name_ + "." + action + "." + "activity_zone_alpha", p.activity_zone_alpha);
-      node_->get_parameter(name_ + "." + action + "." + "activity_zone_phi", p.activity_zone_phi);
+      node_->get_parameter(
+        name_ + "." + action + "." + "n_activity_zones", p.n_activity_zones);
+      node_->get_parameter(
+        name_ + "." + action + "." + "activity_zone_alpha", p.activity_zone_alpha);
+      node_->get_parameter(
+        name_ + "." + action + "." + "activity_zone_phi", p.activity_zone_phi);
 
-      RCLCPP_INFO(node_->get_logger(), 
-      "Action [%s] params: var_h [%f], var_s [%f], var_r [%f], n_activity_zones [%i], "
-      "activity_zone_alpha [%f], activity_zone_alpha [%f]",
-      action.c_str(), p.var_h, p.var_s, p.var_r, p.n_activity_zones, 
-      p.activity_zone_alpha, p.activity_zone_phi);
+      RCLCPP_INFO(
+        node_->get_logger(),
+        "Action [%s] params: var_h [%f], var_s [%f], var_r [%f], n_activity_zones [%i], "
+        "activity_zone_alpha [%f], activity_zone_alpha [%f]",
+        action.c_str(), p.var_h, p.var_s, p.var_r, p.n_activity_zones,
+        p.activity_zone_alpha, p.activity_zone_phi);
 
       action_z_params_map_.insert(std::pair<std::string, ActionZoneParams>(action, p));
     }
@@ -108,7 +113,8 @@ SocialLayer::onInitialize()
     node_->get_parameter(name_ + "." + "var_s", p.var_s);
     node_->get_parameter(name_ + "." + "var_r", p.var_r);
     p.n_activity_zones = 0;
-    RCLCPP_INFO(node_->get_logger(), 
+    RCLCPP_INFO(
+      node_->get_logger(),
       "Basic proxemics params: var_h [%f], var_s [%f], var_r [%f]",
       p.var_h, p.var_s, p.var_r);
     action_z_params_map_.insert(std::pair<std::string, ActionZoneParams>("default", p));
@@ -117,13 +123,13 @@ SocialLayer::onInitialize()
   rolling_window_ = layered_costmap_->isRolling();
   default_value_ = NO_INFORMATION;
   gaussian_amplitude_ = 254.0; /* Amplitude value to get a LETHAL_OBSTACLE intimate zone */
-  RCLCPP_INFO(node_->get_logger(),
+  RCLCPP_INFO(
+    node_->get_logger(),
     "Subscribed to TF Agent with prefix [%s] in global frame [%s]",
     tf_prefix_.c_str(), global_frame_.c_str());
 
   SocialLayer::matchSize();
   current_ = true;
-  
   social_costmap_ = std::make_shared<Costmap2D>(
     layered_costmap_->getCostmap()->getSizeInCellsX(),
     layered_costmap_->getCostmap()->getSizeInCellsY(),
@@ -159,7 +165,8 @@ void SocialLayer::setActionCallback(const SetHumanAction::SharedPtr msg)
   if (element != action_z_params_map_.end()) {
     agents_[msg->agent_id].action = msg->action;
   } else {
-    RCLCPP_ERROR(rclcpp_node_->get_logger(),
+    RCLCPP_ERROR(
+      rclcpp_node_->get_logger(),
       "Action [%s] not declared in social_layer of [%s]",
       msg->action.c_str(),
       node_->get_logger().get_name());
@@ -171,7 +178,6 @@ SocialLayer::updateBounds(
   double robot_x, double robot_y, double robot_yaw,
   double * min_x, double * min_y, double * max_x, double * max_y)
 {
-  
   if (!enabled_) {return;}
 
   if (rolling_window_) {
@@ -198,7 +204,6 @@ SocialLayer::updateBounds(
     setConvexPolygonCost(transformed_footprint_, nav2_costmap_2d::FREE_SPACE);
   }
   updateFootprint(robot_x, robot_y, robot_yaw, min_x, min_y, max_x, max_y);
-  
   costmap_pub_->publishCostmap();
   social_costmap_->resizeMap(
     layered_costmap_->getCostmap()->getSizeInCellsX(),
@@ -278,7 +283,6 @@ SocialLayer::updateAgentMap(std::map<std::string, Agent> & agents)
     tf2::impl::Converter<true, false>::convert(global2agent.transform, global2agent_tf2);
     agent.second.tf = global2agent_tf2;
     agents[agent.first] = agent.second;
-    //RCLCPP_INFO(node_->get_logger(), "P [%f %f]", agent.second.tf.getOrigin().getX(), agent.second.tf.getOrigin().getY());
   }
   return true;
 }
@@ -350,15 +354,14 @@ SocialLayer::setProxemics(
       var_h,
       var_s,
       var_r);
-    if (a > 254.0) {a = 254.0;}
-    else if (a <= 20.0) {continue;}
+    if (a > 254.0) {a = 254.0;} else if (a <= 20.0) {continue;}
     index = getIndex(polygon_cells[i].x, polygon_cells[i].y);
     cvalue = (unsigned char) a;
     old_value = costmap_[index];
     if (old_value <= nav2_costmap_2d::LETHAL_OBSTACLE) {
       max_value = std::max(old_value, cvalue);
       cvalue = max_value;
-    } 
+    }
 
     if (!debug_only_) {costmap_[index] = cvalue;}
     social_costmap_->setCost(polygon_cells[i].x, polygon_cells[i].y, cvalue);
@@ -373,14 +376,13 @@ SocialLayer::setProxemics(
     layered_costmap_->getCostmap(),
     intimate_footprint,
     intimate_cells);
-  
+
   cvalue = 252;
   for (unsigned int i = 0; i < intimate_cells.size(); i++) {
     index = getIndex(intimate_cells[i].x, intimate_cells[i].y);
     social_costmap_->setCost(intimate_cells[i].x, intimate_cells[i].y, cvalue);
     if (!debug_only_) {costmap_[index] = cvalue;}
   }
-
 }
 
 tf2::Vector3
@@ -422,7 +424,7 @@ SocialLayer::makeEscortFootprint(float r, float alpha)
   pt.x = 0.0;
   pt.y = 0.0;
   points.push_back(pt);
-  float orientation = M_PI / 4 + alpha; 
+  float orientation = M_PI / 4 + alpha;
   quarterFootprint(r, orientation, points);
   orientation = orientation + M_PI;
   quarterFootprint(r, orientation, points);
@@ -436,7 +438,7 @@ SocialLayer::quarterFootprint(
   // Loop over 32 angles around a circle making a point each time
   int N = 32;
   float alpha = M_PI / 2;
-  int it = (int) round((N * alpha) / (2 * M_PI));
+  int it = static_cast<int>(round((N * alpha) / (2 * M_PI)));
   geometry_msgs::msg::Point pt;
   for (int i = 0; i < it; ++i) {
     double angle = i * 2 * M_PI / N + orientation;

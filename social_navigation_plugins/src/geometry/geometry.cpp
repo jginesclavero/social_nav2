@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <vector>
 
 #include "social_navigation_plugins/geometry/geometry.hpp"
 
-using namespace nav2_costmap_2d;
+using nav2_costmap_2d::MapLocation;
 
 namespace social_geometry
 {
@@ -24,7 +25,6 @@ void polygonFillCells(
   const std::vector<MapLocation> & polygon,
   std::vector<MapLocation> & polygon_cells)
 {
-
   polygon_type b_poly;
   unsigned int min_x = 0, max_x = 0, min_y = 0, max_y = 0;
   for (auto p : polygon) {
@@ -72,7 +72,6 @@ void getPolygon(
   }
   // get the cells that fill the polygon
   social_geometry::polygonFillCells(map_polygon, polygon_cells);
-  //convexFillCells(map_polygon, polygon_cells);
 }
 
 std::vector<geometry_msgs::msg::Point>
@@ -81,7 +80,7 @@ makeProxemicShapeFromAngle(float r, float alpha, float orientation)
   std::vector<geometry_msgs::msg::Point> points;
   // Loop over 32 angles around a circle making a point each time
   int N = 32;
-  int it = (int) round((N * alpha) / (2 * M_PI));
+  int it = static_cast<int>(round((N * alpha) / (2 * M_PI)));
   geometry_msgs::msg::Point pt;
   for (int i = 0; i < it; ++i) {
     double angle = i * 2 * M_PI / N + orientation;

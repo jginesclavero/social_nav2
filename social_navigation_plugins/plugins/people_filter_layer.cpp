@@ -50,7 +50,8 @@ PeopleFilterLayer::onInitialize()
   global_frame_ = layered_costmap_->getGlobalFrameID();
   rolling_window_ = layered_costmap_->isRolling();
   default_value_ = NO_INFORMATION;
-  RCLCPP_INFO(node_->get_logger(),
+  RCLCPP_INFO(
+    node_->get_logger(),
     "Subscribed to TF Agent with prefix [%s] in global frame [%s]",
     tf_prefix_.c_str(), global_frame_.c_str());
   private_node_ = rclcpp::Node::make_shared("people_filter_layer_sub");
@@ -109,8 +110,6 @@ PeopleFilterLayer::updateBounds(
     agentFilter(agent, filter_radius_);
     doTouch(agent, min_x, min_y, max_x, max_y);
   }
-
-  //updateFootprint(robot_x, robot_y, robot_yaw, min_x, min_y, max_x, max_y);
 }
 
 void
