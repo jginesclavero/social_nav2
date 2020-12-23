@@ -120,7 +120,23 @@ protected:
     tf2::Transform tf,
     std::vector<geometry_msgs::msg::Point> & transformed_proxemic,
     float alpha_mod = 0.0);
-  
+    
+  void clearArea(int start_x, int start_y, int end_x, int end_y) {
+    unsigned char * grid = getCharMap();
+
+    for (int x = 0; x < static_cast<int>(getSizeInCellsX()); x++) {
+      bool xrange = x >= start_x && x <= end_x;
+
+      for (int y = 0; y < static_cast<int>(getSizeInCellsY()); y++) {
+        if (xrange && y >= start_y && y <= end_y) {
+          int index = getIndex(x, y);
+          if (grid[index] != NO_INFORMATION) {
+            grid[index] = NO_INFORMATION;
+          }
+        }
+      }
+    }
+  }
   std::vector<geometry_msgs::msg::Point> transformed_footprint_;
   std::map<std::string, Agent> agents_;
   std::map<std::string, ActionZoneParams> action_z_params_map_;

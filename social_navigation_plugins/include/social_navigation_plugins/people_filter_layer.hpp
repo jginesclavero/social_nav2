@@ -85,7 +85,23 @@ protected:
     double robot_x, double robot_y, double robot_yaw, double * min_x,
     double * min_y, double * max_x, double * max_y);
   void agentFilter(tf2::Transform agent, float r);
+  
+  void clearArea(int start_x, int start_y, int end_x, int end_y) {
+    unsigned char * grid = getCharMap();
 
+    for (int x = 0; x < static_cast<int>(getSizeInCellsX()); x++) {
+      bool xrange = x >= start_x && x <= end_x;
+
+      for (int y = 0; y < static_cast<int>(getSizeInCellsY()); y++) {
+        if (xrange && y >= start_y && y <= end_y) {
+          int index = getIndex(x, y);
+          if (grid[index] != NO_INFORMATION) {
+            grid[index] = NO_INFORMATION;
+          }
+        }
+      }
+    }
+  }
   rclcpp::Node::SharedPtr private_node_;
   std::vector<geometry_msgs::msg::Point> transformed_footprint_;
   std::vector<std::string> agent_ids_;
