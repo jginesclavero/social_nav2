@@ -167,20 +167,16 @@ local_costmap:
       width: 6
       height: 6
       resolution: 0.05
-      plugin_names: [
+      plugins: [
         "obstacle_layer",
         "people_filter_layer",
         "inflation_layer",
-        "social_layer",]
-      plugin_types: [
-        "nav2_costmap_2d::ObstacleLayer",
-        "social_navigation_plugins/PeopleFilterLayer",
-        "nav2_costmap_2d::InflationLayer",
-        "social_navigation_plugins/SocialLayer",]
-      robot_radius: 0.22
+        "social_layer"]
       inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
       obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: True
         observation_sources: scan
         scan:
@@ -208,13 +204,13 @@ local_costmap:
           clearing: False
           marking: False
           data_type: "PointCloud2"
-      static_layer:
-        map_subscribe_transient_local: True
       people_filter_layer:
+        plugin: "social_navigation_plugins/PeopleFilterLayer"
         enabled: True
         tf_prefix: "agent_"
         filter_radius: 0.45
       social_layer:
+        plugin: "social_navigation_plugins/SocialLayer"
         enabled: True
         debug_only: False
         tf_prefix: "agent_"
@@ -259,21 +255,19 @@ global_costmap:
       robot_base_frame: base_link
       global_frame: map
       use_sim_time: True
-      plugin_names: [
+      plugins: [
         "static_layer",
         "obstacle_layer",
         "people_filter_layer",
         "inflation_layer",
         "social_layer"]
-      plugin_types: [
-        "nav2_costmap_2d::StaticLayer",
-        "nav2_costmap_2d::ObstacleLayer",
-        "social_navigation_plugins/PeopleFilterLayer",
-        "nav2_costmap_2d::InflationLayer",
-        "social_navigation_plugins/SocialLayer"]
       robot_radius: 0.22
       resolution: 0.05
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        map_subscribe_transient_local: True
       obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: True
         observation_sources: scan
         scan:
@@ -284,6 +278,9 @@ global_costmap:
           clearing: True
           marking: True
           data_type: "LaserScan"
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        cost_scaling_factor: 3.0
       voxel_layer:
         enabled: True
         publish_voxel_map: True
@@ -301,13 +298,14 @@ global_costmap:
           clearing: False
           marking: False
           data_type: "PointCloud2"
-      static_layer:
-        map_subscribe_transient_local: True
+      
       people_filter_layer:
+        plugin: "social_navigation_plugins/PeopleFilterLayer"
         enabled: True
         tf_prefix: "agent_"
         filter_radius: 0.45
       social_layer:
+        plugin: "social_navigation_plugins/SocialLayer"
         enabled: True
         debug_only: False
         tf_prefix: "agent_"

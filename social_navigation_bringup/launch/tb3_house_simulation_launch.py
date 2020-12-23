@@ -157,9 +157,9 @@ def generate_launch_description():
     start_robot_state_publisher_cmd = Node(
         condition=IfCondition(use_robot_state_pub),
         package='robot_state_publisher',
-        node_executable='robot_state_publisher',
-        node_name='robot_state_publisher',
-        node_namespace=namespace,
+        executable='robot_state_publisher',
+        name='robot_state_publisher',
+        namespace=namespace,
         output='screen',
         parameters=[{'use_sim_time': use_sim_time}],
         remappings=remappings,
@@ -168,8 +168,8 @@ def generate_launch_description():
     start_rviz_cmd = Node(
         condition=IfCondition(use_rviz),
         package='rviz2',
-        node_executable='rviz2',
-        node_name='rviz2',
+        executable='rviz2',
+        name='rviz2',
         arguments=['-d', rviz_config_file],
         output='screen',
     )
@@ -191,8 +191,8 @@ def generate_launch_description():
 
     agent_spawner_cmd = Node(
         package='pedsim_gazebo_plugin',
-        node_executable='spawn_pedsim_agents.py',
-        node_name='spawn_pedsim_agents',
+        executable='spawn_pedsim_agents.py',
+        name='spawn_pedsim_agents',
         output='screen')
 
     # Create the launch description and populate

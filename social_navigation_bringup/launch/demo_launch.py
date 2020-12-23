@@ -76,8 +76,8 @@ def generate_launch_description():
 
     dummy_set_agent_action_cmd = Node(
         package='social_navigation_tooling',
-        node_executable='dummy_set_agent_action',
-        node_name='dummy_set_agent_action',
+        executable='dummy_set_agent_action',
+        name='dummy_set_agent_action',
         output='screen'
     )
 
