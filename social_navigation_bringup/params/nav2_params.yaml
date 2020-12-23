@@ -365,7 +365,7 @@ planner_server:
       plugin: "nav2_navfn_planner/NavfnPlanner"
       tolerance: 2.7
       use_astar: false
-      allow_unknown: truerecoveries_server:
+      allow_unknown: true
 
 planner_server_rclcpp_node:
   ros__parameters:
