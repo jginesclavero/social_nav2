@@ -54,14 +54,9 @@ PeopleFilterLayer::onInitialize()
     node_->get_logger(),
     "Subscribed to TF Agent with prefix [%s] in global frame [%s]",
     tf_prefix_.c_str(), global_frame_.c_str());
-  private_node_ = rclcpp::Node::make_shared("people_filter_layer_sub");
 
   PeopleFilterLayer::matchSize();
   current_ = true;
-
-  tf_sub_ = private_node_->create_subscription<tf2_msgs::msg::TFMessage>(
-    "tf", rclcpp::SensorDataQoS(),
-    std::bind(&PeopleFilterLayer::tfCallback, this, std::placeholders::_1));
 
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(node_->get_clock());
   auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS>(
@@ -72,11 +67,12 @@ PeopleFilterLayer::onInitialize()
 }
 
 void
-PeopleFilterLayer::tfCallback(const tf2_msgs::msg::TFMessage::SharedPtr msg)
+PeopleFilterLayer::getFrameNames()
 {
-  for (auto tf : msg->transforms) {
-    if (tf.child_frame_id.find(tf_prefix_) != std::string::npos) {
-      agent_ids_.push_back(tf.child_frame_id);
+  auto frames = tf_buffer_->getAllFrameNames();
+  for (auto tf : frames) {    
+    if (tf.find(tf_prefix_) != std::string::npos) {
+      agent_ids_.push_back(tf);
     }
   }
   sort(agent_ids_.begin(), agent_ids_.end());
@@ -94,8 +90,8 @@ PeopleFilterLayer::updateBounds(
   }
 
   if (!enabled_) {return;}
-  clearArea(0, 0, getSizeInCellsX(), getSizeInCellsY());
-
+  getFrameNames();
+  clearArea(0, 0, getSizeInCellsX(), getSizeInCellsY(), true);
   useExtraBounds(min_x, min_y, max_x, max_y);
   bool current = true;
 
@@ -105,6 +101,9 @@ PeopleFilterLayer::updateBounds(
 
   // update the global current status
   current_ = current;
+  if (agents.size() == 0) {
+    RCLCPP_WARN(node_->get_logger(), "Agents vector size is 0");
+  }
 
   for (auto agent : agents) {
     agentFilter(agent, filter_radius_);
@@ -131,7 +130,6 @@ PeopleFilterLayer::updateCosts(
 {
   if (!enabled_) {return;}
   updateWithOverwrite(master_grid, min_i, min_j, max_i, max_j);
-  rclcpp::spin_some(private_node_);
 }
 
 void
@@ -156,7 +154,6 @@ bool
 PeopleFilterLayer::getAgentTFs(std::vector<tf2::Transform> & agents) const
 {
   geometry_msgs::msg::TransformStamped global2agent;
-
   for (auto id : agent_ids_) {
     try {
       // Check if the transform is available
