@@ -32,7 +32,7 @@
 
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
-#include "social_navigation_msgs/msg/set_human_action.hpp"
+#include "social_nav2_msgs/msg/set_human_action.hpp"
 #include "nav2_costmap_2d/costmap_subscriber.hpp"
 #include "nav2_costmap_2d/costmap_layer.hpp"
 #include "std_msgs/msg/float64.hpp"
@@ -44,7 +44,7 @@ using CallbackReturnT =
       rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 using GetParameters = rcl_interfaces::srv::GetParameters;
 using SetParameters = rcl_interfaces::srv::SetParameters;
-using SetHumanAction = social_navigation_msgs::msg::SetHumanAction;
+using SetHumanAction = social_nav2_msgs::msg::SetHumanAction;
 using LifecycleNodeInterface = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface;
 using nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE;
 

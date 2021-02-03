@@ -11,7 +11,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(diagnostic_msgs REQUIRED)
 find_package(nav2_msgs REQUIRED)
 find_package(nav2_costmap_2d REQUIRED)
-find_package(social_navigation_msgs REQUIRED)
+find_package(social_nav2_msgs REQUIRED)
 
 set(dependencies
     rclcpp
@@ -19,7 +19,7 @@ set(dependencies
     nav2_msgs
     diagnostic_msgs
     nav2_costmap_2d
-    social_navigation_msgs
+    social_nav2_msgs
 )
 
 include_directories(include)

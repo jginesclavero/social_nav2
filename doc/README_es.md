@@ -1,12 +1,12 @@
-# Social_navigation2
-Social_navigation2 es un framework para la representación de personas en el stack de navegación de ROS2, Nav2. Está basado en la teoria de la proxemia [ref Hall], 
+# social_nav2
+social_nav2 es un framework para la representación de personas en el stack de navegación de ROS2, Nav2. Está basado en la teoria de la proxemia [ref Hall], 
 que estudia cómo los humanos se posicionan en es espacio respecto a los demás. Esta teoría define zonas, las zonas de proxemia, de diferente tamaño según 
 el contexto, la edad, la actividad que se esté realizando, nuestra relación con el resto de humanos, la cultura, etc.
 Poder respresentar estás zonas en el mapa del robot resulta muy útil si queremos solucinar problemas de navegación en entornos reales con humanos, 
 ya que permite representar de forma distinta a un humano de un obstáculo. Este es un proyecto de software libre y en pleno desarrollo, 
 por lo que se agradece cualquier contribución.
 
-![demo](https://github.com/jginesclavero/social_navigation2/blob/master/doc/demo.gif?raw=true)
+![demo](https://github.com/jginesclavero/social_nav2/blob/master/doc/demo.gif?raw=true)
 
 ## Cita
 Si usas social_layer, construyes tus aplicaciones usando este framework como base, o coges ideas de nuestro trabajo, por favor citanos en tus publicaciones!
@@ -26,7 +26,7 @@ Si usas social_layer, construyes tus aplicaciones usando este framework como bas
 ```
 ## Diseño
 Este framework ha sido implementado en forma de plugins de Nav2, por lo que se puede integrar de una forma casi inmediata.
-![stack](https://github.com/jginesclavero/social_navigation2/blob/master/doc/ros_navigation_layers_2.png)
+![stack](https://github.com/jginesclavero/social_nav2/blob/master/doc/ros_navigation_layers_2.png)
 
 ### Input
 Para poder realizar la representación de las personas es necesario alimentar al sistema con su posición y orientación. Para una mejor usabilidad, 
@@ -34,7 +34,7 @@ se utiliza el arbol de TFs como entrada, por lo que habrá que publicar la posic
 Estás TFs pueden ser obtenidas de un sistema de MotionCapture, de un simulador como PedSim o de un sistema de vision abordo del robot.
 Normalmente se establecerá un prefijo seguido de un número para tener una TF por cada persona, por ejemplo, "agente_1", "agente_2", "human1", "human2", etc.
 
-![agent_tf](https://github.com/jginesclavero/social_navigation2/blob/master/doc/agent_w_tf.png)
+![agent_tf](https://github.com/jginesclavero/social_nav2/blob/master/doc/agent_w_tf.png)
 
 ### Output
 Como ya hemos comentado anteriormente, este framework se ha desarrollado como un plugin de Nav2, por lo que su salida será una contribución
@@ -54,7 +54,7 @@ Parámetros de configuración. Se especifican en el mismo fichero de parámetros
 Plugin central del sistema. Es el encargado de crear las zonas de proxemia. Estas zonas de proxemia son totalmente configurables gracias a que son creadas usando
 una función [Gausiana Asimétrica](https://ri.cmu.edu/pub_files/2010/5/rk_thesis.pdf). Podemos configurar las zonas usando var_h, var_r y var_s para cada uno de los agentes.
 
-<img src="https://github.com/jginesclavero/social_navigation2/blob/master/doc/asymmetric_gaussian.png" width="400">
+<img src="https://github.com/jginesclavero/social_nav2/blob/master/doc/asymmetric_gaussian.png" width="400">
  
 #### Parámetros
 Parámetros de configuración. Se especifican en el mismo fichero de parámetros de nav2.
@@ -72,9 +72,9 @@ Debemos definir, por tanto, una acción y configurarla como queramos. A continua
 
 HRI      |  Escort action 
 :-------------------------:|:-------------------------:
-![hri](https://github.com/jginesclavero/social_navigation2/blob/master/doc/hri.png) | ![escort](https://github.com/jginesclavero/social_navigation2/blob/master/doc/escort.png)
+![hri](https://github.com/jginesclavero/social_nav2/blob/master/doc/hri.png) | ![escort](https://github.com/jginesclavero/social_nav2/blob/master/doc/escort.png)
 
-##### Parámetros de la zona de cooperacion. [Ver este ejemplo](https://github.com/jginesclavero/social_navigation2/blob/1c1118518a01c9c47358ad0e195b25f11f6e1300/social_navigation_bringup/params/nav2_params.yaml#L202-L208)
+##### Parámetros de la zona de cooperacion. [Ver este ejemplo](https://github.com/jginesclavero/social_nav2/blob/1c1118518a01c9c47358ad0e195b25f11f6e1300/social_nav2_bringup/params/nav2_params.yaml#L202-L208)
 - var_h
 - var_s
 - var_r
@@ -82,7 +82,7 @@ HRI      |  Escort action
 - activity_zone_phi: Angulo de la zona de actividad.
   
 ## Uso
-Para hacer uso de social_layer, incluimos este repositorio en nuestro workspace y compilamos. Tras esto, añadimos a nuestro fichero de configuración de nav2 la configuración específica del social_layer. [Un ejemplo completo aquí](https://github.com/jginesclavero/social_navigation2/blob/master/social_navigation_bringup/params/nav2_params.yaml)
+Para hacer uso de social_layer, incluimos este repositorio en nuestro workspace y compilamos. Tras esto, añadimos a nuestro fichero de configuración de nav2 la configuración específica del social_layer. [Un ejemplo completo aquí](https://github.com/jginesclavero/social_nav2/blob/master/social_nav2_bringup/params/nav2_params.yaml)
 
 ## Demo
 ### Dependencias.
@@ -95,5 +95,5 @@ Para poder simular la posición de las personas es necesario descargar y compila
 ```
 Finalmente, ejecutamos la demo.
 ```console
-  ros2 launch social_navigation_bringup demo_launch.py
+  ros2 launch social_nav2_bringup demo_launch.py
 ```

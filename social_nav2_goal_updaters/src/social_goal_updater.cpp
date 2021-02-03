@@ -44,7 +44,7 @@ namespace social_nav2_actions
     action_pub_ =
       std::make_shared<rclcpp_lifecycle::LifecyclePublisher<SetHumanAction>>(
         get_node_base_interface().get(), 
-        std::string("/social_navigation/set_agent_action"), 
+        std::string("/social_nav2/set_agent_action"), 
         rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(), 
         options);
     chrono_pub_ =
