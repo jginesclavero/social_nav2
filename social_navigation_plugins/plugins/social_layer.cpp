@@ -155,11 +155,21 @@ SocialLayer::onInitialize()
     "/social_navigation/set_agent_action",
     rclcpp::QoS(rclcpp::KeepLast(10)).transient_local().reliable(),
     std::bind(&SocialLayer::setActionCallback, this, std::placeholders::_1));
+  
+  // Setup callback for changes to parameters.
+  parameters_client_ = std::make_shared<rclcpp::AsyncParametersClient>(
+    rclcpp_node_->get_node_base_interface(),
+    rclcpp_node_->get_node_topics_interface(),
+    rclcpp_node_->get_node_graph_interface(),
+    rclcpp_node_->get_node_services_interface());
 
+  parameter_event_sub_ = parameters_client_->on_parameter_event(
+    std::bind(&SocialLayer::onParameterEventCallback, this, _1));
   if (debug_only_) {RCLCPP_WARN(node_->get_logger(), "[Social layer] Debug_only mode activated");}
 }
 
-void SocialLayer::setActionCallback(const SetHumanAction::SharedPtr msg)
+void 
+SocialLayer::setActionCallback(const SetHumanAction::SharedPtr msg)
 {
   auto element = action_z_params_map_.find(msg->action);
   if (element != action_z_params_map_.end()) {
@@ -173,7 +183,24 @@ void SocialLayer::setActionCallback(const SetHumanAction::SharedPtr msg)
   }
 }
 
-void
+void 
+SocialLayer::onParameterEventCallback(
+  const rcl_interfaces::msg::ParameterEvent::SharedPtr event) 
+{
+  for (auto & changed_parameter : event->changed_parameters) {
+    // const auto & type = changed_parameter.value.type;
+    const auto & name = changed_parameter.name;
+    const auto & value = changed_parameter.value;
+    if (name == name_ + ".intimate_z_radius") {
+      intimate_z_radius_ = value.double_value;
+    } else if (name == name_ + ".personal_z_radius") {
+      personal_z_radius_ = value.double_value;
+    }
+  }
+}
+
+
+void 
 SocialLayer::updateBounds(
   double robot_x, double robot_y, double robot_yaw,
   double * min_x, double * min_y, double * max_x, double * max_y)
@@ -184,7 +211,7 @@ SocialLayer::updateBounds(
     updateOrigin(robot_x - getSizeInMetersX() / 2, robot_y - getSizeInMetersY() / 2);
   }
 
-  clearArea(0, 0, getSizeInCellsX(), getSizeInCellsY());
+  clearArea(0, 0, getSizeInCellsX(), getSizeInCellsY(), true);
 
   useExtraBounds(min_x, min_y, max_x, max_y);
   bool current = true;
@@ -213,7 +240,7 @@ SocialLayer::updateBounds(
     layered_costmap_->getCostmap()->getOriginY());
 }
 
-void
+void 
 SocialLayer::updateFootprint(
   double robot_x, double robot_y, double robot_yaw,
   double * min_x, double * min_y, double * max_x, double * max_y)
@@ -226,7 +253,7 @@ SocialLayer::updateFootprint(
   }
 }
 
-void
+void 
 SocialLayer::updateCosts(
   nav2_costmap_2d::Costmap2D & master_grid, int min_i, int min_j,
   int max_i,
@@ -236,7 +263,7 @@ SocialLayer::updateCosts(
   updateWithMax(master_grid, min_i, min_j, max_i, max_j);
 }
 
-void
+void 
 SocialLayer::doTouch(
   tf2::Transform agent,
   double * min_x, double * min_y, double * max_x, double * max_y)
@@ -253,7 +280,7 @@ SocialLayer::doTouch(
   }
 }
 
-bool
+bool 
 SocialLayer::updateAgentMap(std::map<std::string, Agent> & agents)
 {
   geometry_msgs::msg::TransformStamped global2agent;
@@ -287,7 +314,7 @@ SocialLayer::updateAgentMap(std::map<std::string, Agent> & agents)
   return true;
 }
 
-void
+void 
 SocialLayer::setProxemics(
   Agent & agent, float r, float amplitude)
 {
@@ -385,14 +412,13 @@ SocialLayer::setProxemics(
   }
 }
 
-tf2::Vector3
-SocialLayer::transformPoint(
+tf2::Vector3 SocialLayer::transformPoint(
   const tf2::Vector3 & input_point, const tf2::Transform & transform)
 {
   return transform * input_point;
 }
 
-void
+void 
 SocialLayer::transformProxemicFootprint(
   std::vector<geometry_msgs::msg::Point> input_points,
   tf2::Transform tf,
@@ -416,7 +442,7 @@ SocialLayer::transformProxemicFootprint(
   }
 }
 
-std::vector<geometry_msgs::msg::Point>
+std::vector<geometry_msgs::msg::Point> 
 SocialLayer::makeEscortFootprint(float r, float alpha)
 {
   std::vector<geometry_msgs::msg::Point> points;
@@ -431,7 +457,7 @@ SocialLayer::makeEscortFootprint(float r, float alpha)
   return points;
 }
 
-void
+void 
 SocialLayer::quarterFootprint(
   float r, float orientation, std::vector<geometry_msgs::msg::Point> & points)
 {
