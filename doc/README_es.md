@@ -1,8 +1,8 @@
 # social_nav2
 social_nav2 es un framework para la representación de personas en el stack de navegación de ROS2, Nav2. Está basado en la teoria de la proxemia [ref Hall], 
-que estudia cómo los humanos se posicionan en es espacio respecto a los demás. Esta teoría define zonas, las zonas de proxemia, de diferente tamaño según 
+que estudia cómo los humanos se posicionan en el espacio respecto a los demás. Esta teoría define zonas, las zonas de proxemia, de diferente tamaño según 
 el contexto, la edad, la actividad que se esté realizando, nuestra relación con el resto de humanos, la cultura, etc.
-Poder respresentar estás zonas en el mapa del robot resulta muy útil si queremos solucinar problemas de navegación en entornos reales con humanos, 
+Poder respresentar estás zonas en el mapa del robot resulta muy útil si queremos solucionar problemas de navegación en entornos reales con humanos, 
 ya que permite representar de forma distinta a un humano de un obstáculo. Este es un proyecto de software libre y en pleno desarrollo, 
 por lo que se agradece cualquier contribución.
 
