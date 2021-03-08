@@ -74,12 +74,12 @@ def generate_launch_description():
         launch_arguments={'frame_id': frame_id}.items()
     )
 
-    dummy_set_agent_action_cmd = Node(
-        package='social_nav2_tooling',
-        executable='dummy_set_agent_action',
-        name='dummy_set_agent_action',
-        output='screen'
-    )
+    #dummy_set_agent_action_cmd = Node(
+    #    package='social_nav2_tooling',
+    #    executable='dummy_set_agent_action',
+    #    name='dummy_set_agent_action',
+    #    output='screen'
+    #)
 
     # Create the launch description and populate
     ld = LaunchDescription()
@@ -88,7 +88,7 @@ def generate_launch_description():
     ld.add_action(declare_scene_file_cmd)
     ld.add_action(declare_simulation_factor_cmd)
     ld.add_action(declare_frame_id_cmd)
-    ld.add_action(dummy_set_agent_action_cmd)
+    # ld.add_action(dummy_set_agent_action_cmd)
     # Add any conditioned actions
     ld.add_action(pedsim_cmd)
     ld.add_action(pedsim_visualizer_cmd)
