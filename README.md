@@ -5,7 +5,7 @@ Social_nav2 is a people representation framework for ROS2 Navigation stack, [NAV
 
 This work was presented in WAF2020. Here you find the presentation video.
 
-[![](http://img.youtube.com/vi/HZ6HeVKQSZU/0.jpg)](http://www.youtube.com/watch?v=HZ6HeVKQSZU "")
+[![](https://raw.githubusercontent.com/jginesclavero/social_nav2/master/doc/social_nav2_miniature.png)](http://www.youtube.com/watch?v=HZ6HeVKQSZU "")
 
 
 ## Citation
