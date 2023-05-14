@@ -1,18 +1,49 @@
-// Copyright 2020 Intelligent Robotics Lab
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+/*********************************************************************
+ *
+ * Software License Agreement (BSD License)
+ *
+ *  Copyright (c) 2008, 2013, Willow Garage, Inc.
+ *  Copyright (c) 2020, Samsung R&D Institute Russia
+ *  All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/or other materials provided
+ *     with the distribution.
+ *   * Neither the name of Willow Garage, Inc. nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Author: Eitan Marder-Eppstein
+ *         David V. Lu!!
+ *         Alexey Merzlyakov
+ * 
+ *
+ * Reference tutorial:
+ * https://navigation.ros.org/tutorials/docs/writing_new_costmap2d_plugin.html
+ *********************************************************************/
 
-// Author: jginesclavero
+// Copyright 2019 Intelligent Robotics Lab
+// Author: jginesclavero https://github.com/jginesclavero/social_nav2
 
 #include "social_nav2_plugins/social_layer.hpp"
 
@@ -23,10 +54,9 @@
 #include <utility>
 #include <map>
 
-#include "pluginlib/class_list_macros.hpp"
 #include "nav2_costmap_2d/costmap_math.hpp"
-
-PLUGINLIB_EXPORT_CLASS(nav2_costmap_2d::SocialLayer, nav2_costmap_2d::Layer)
+#include "nav2_costmap_2d/footprint.hpp"
+#include "rclcpp/parameter_events_filter.hpp"
 
 using std::placeholders::_1;
 using std::placeholders::_2;
@@ -45,6 +75,7 @@ SocialLayer::~SocialLayer() {}
 void
 SocialLayer::onInitialize()
 {
+  auto node = node_.lock(); 
   std::vector<std::string> action_names{"default"};
 
   declareParameter("enabled", rclcpp::ParameterValue(true));
@@ -59,16 +90,16 @@ SocialLayer::onInitialize()
   declareParameter("use_proxemics", rclcpp::ParameterValue(true));
   declareParameter("action_names", rclcpp::ParameterValue(action_names));
 
-  node_->get_parameter(name_ + "." + "enabled", enabled_);
-  node_->get_parameter(name_ + "." + "debug_only", debug_only_);
-  node_->get_parameter(
+  node->get_parameter(name_ + "." + "enabled", enabled_);
+  node->get_parameter(name_ + "." + "debug_only", debug_only_);
+  node->get_parameter(
     name_ + "." + "footprint_clearing_enabled",
     footprint_clearing_enabled_);
-  node_->get_parameter(name_ + "." + "tf_prefix", tf_prefix_);
-  node_->get_parameter(name_ + "." + "intimate_z_radius", intimate_z_radius_);
-  node_->get_parameter(name_ + "." + "personal_z_radius", personal_z_radius_);
-  node_->get_parameter(name_ + "." + "orientation_info", orientation_info_);
-  node_->get_parameter(name_ + "." + "action_names", action_names_);
+  node->get_parameter(name_ + "." + "tf_prefix", tf_prefix_);
+  node->get_parameter(name_ + "." + "intimate_z_radius", intimate_z_radius_);
+  node->get_parameter(name_ + "." + "personal_z_radius", personal_z_radius_);
+  node->get_parameter(name_ + "." + "orientation_info", orientation_info_);
+  node->get_parameter(name_ + "." + "action_names", action_names_);
   if (action_names_.size() > 1) {
     for (auto action : action_names_) {
       ActionZoneParams p;
@@ -85,18 +116,18 @@ SocialLayer::onInitialize()
       declareParameter(action + "." + "activity_zone_alpha", rclcpp::ParameterValue(0.0));
       declareParameter(action + "." + "activity_zone_phi", rclcpp::ParameterValue(0.0));
 
-      node_->get_parameter(name_ + "." + action + "." + "var_h", p.var_h);
-      node_->get_parameter(name_ + "." + action + "." + "var_s", p.var_s);
-      node_->get_parameter(name_ + "." + action + "." + "var_r", p.var_r);
-      node_->get_parameter(
+      node->get_parameter(name_ + "." + action + "." + "var_h", p.var_h);
+      node->get_parameter(name_ + "." + action + "." + "var_s", p.var_s);
+      node->get_parameter(name_ + "." + action + "." + "var_r", p.var_r);
+      node->get_parameter(
         name_ + "." + action + "." + "n_activity_zones", p.n_activity_zones);
-      node_->get_parameter(
+      node->get_parameter(
         name_ + "." + action + "." + "activity_zone_alpha", p.activity_zone_alpha);
-      node_->get_parameter(
+      node->get_parameter(
         name_ + "." + action + "." + "activity_zone_phi", p.activity_zone_phi);
 
       RCLCPP_INFO(
-        node_->get_logger(),
+        node->get_logger(),
         "Action [%s] params: var_h [%f], var_s [%f], var_r [%f], n_activity_zones [%i], "
         "activity_zone_alpha [%f], activity_zone_alpha [%f]",
         action.c_str(), p.var_h, p.var_s, p.var_r, p.n_activity_zones,
@@ -109,22 +140,22 @@ SocialLayer::onInitialize()
     declareParameter("var_h", rclcpp::ParameterValue(1.2));
     declareParameter("var_s", rclcpp::ParameterValue(1.2));
     declareParameter("var_r", rclcpp::ParameterValue(1.2));
-    node_->get_parameter(name_ + "." + "var_h", p.var_h);
-    node_->get_parameter(name_ + "." + "var_s", p.var_s);
-    node_->get_parameter(name_ + "." + "var_r", p.var_r);
+    node->get_parameter(name_ + "." + "var_h", p.var_h);
+    node->get_parameter(name_ + "." + "var_s", p.var_s);
+    node->get_parameter(name_ + "." + "var_r", p.var_r);
     p.n_activity_zones = 0;
     RCLCPP_INFO(
-      node_->get_logger(),
+      node->get_logger(),
       "Basic proxemics params: var_h [%f], var_s [%f], var_r [%f]",
       p.var_h, p.var_s, p.var_r);
     action_z_params_map_.insert(std::pair<std::string, ActionZoneParams>("default", p));
   }
   global_frame_ = layered_costmap_->getGlobalFrameID();
   rolling_window_ = layered_costmap_->isRolling();
-  default_value_ = NO_INFORMATION;
+  // default_value_ = NO_INFORMATION;
   gaussian_amplitude_ = 254.0; /* Amplitude value to get a LETHAL_OBSTACLE intimate zone */
   RCLCPP_INFO(
-    node_->get_logger(),
+    node->get_logger(),
     "Subscribed to TF Agent with prefix [%s] in global frame [%s]",
     tf_prefix_.c_str(), global_frame_.c_str());
 
@@ -139,47 +170,48 @@ SocialLayer::onInitialize()
   social_costmap_->setDefaultValue(nav2_costmap_2d::FREE_SPACE);
 
   costmap_pub_ = std::make_shared<Costmap2DPublisher>(
-    node_,
+    node,
     social_costmap_.get(), global_frame_,
     name_ + "/costmap", true);
   costmap_pub_->on_activate();
 
-  tf_buffer_ = std::make_shared<tf2_ros::Buffer>(node_->get_clock());
+  tf_buffer_ = std::make_shared<tf2_ros::Buffer>(node->get_clock());
   auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS>(
-    node_->get_node_base_interface(),
-    node_->get_node_timers_interface());
+    node->get_node_base_interface(),
+    node->get_node_timers_interface());
   tf_buffer_->setCreateTimerInterface(timer_interface);
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
-  set_action_sub_ = rclcpp_node_->create_subscription<SetHumanAction>(
+  set_action_sub_ = node->create_subscription<SetHumanAction>(
     "/social_nav2/set_agent_action",
     rclcpp::QoS(rclcpp::KeepLast(10)).transient_local().reliable(),
     std::bind(&SocialLayer::setActionCallback, this, std::placeholders::_1));
   
   // Setup callback for changes to parameters.
   parameters_client_ = std::make_shared<rclcpp::AsyncParametersClient>(
-    rclcpp_node_->get_node_base_interface(),
-    rclcpp_node_->get_node_topics_interface(),
-    rclcpp_node_->get_node_graph_interface(),
-    rclcpp_node_->get_node_services_interface());
+    node->get_node_base_interface(),
+    node->get_node_topics_interface(),
+    node->get_node_graph_interface(),
+    node->get_node_services_interface());
 
   parameter_event_sub_ = parameters_client_->on_parameter_event(
     std::bind(&SocialLayer::onParameterEventCallback, this, _1));
-  if (debug_only_) {RCLCPP_WARN(node_->get_logger(), "[Social layer] Debug_only mode activated");}
+  if (debug_only_) {RCLCPP_WARN(node->get_logger(), "[Social layer] Debug_only mode activated");}
 }
 
 void 
 SocialLayer::setActionCallback(const SetHumanAction::SharedPtr msg)
 {
+  auto node = node_.lock();
   auto element = action_z_params_map_.find(msg->action);
   if (element != action_z_params_map_.end()) {
     agents_[msg->agent_id].action = msg->action;
   } else {
     RCLCPP_ERROR(
-      rclcpp_node_->get_logger(),
+      node->get_logger(),
       "Action [%s] not declared in social_layer of [%s]",
       msg->action.c_str(),
-      node_->get_logger().get_name());
+      node->get_logger().get_name());
   }
 }
 
@@ -283,6 +315,7 @@ SocialLayer::doTouch(
 bool 
 SocialLayer::updateAgentMap(std::map<std::string, Agent> & agents)
 {
+  auto node = node_.lock();
   geometry_msgs::msg::TransformStamped global2agent;
 
   std::vector<std::string> frames;
@@ -302,7 +335,7 @@ SocialLayer::updateAgentMap(std::map<std::string, Agent> & agents)
       // Check if the transform is available
       global2agent = tf_buffer_->lookupTransform(global_frame_, agent.first, tf2::TimePointZero);
     } catch (tf2::TransformException & e) {
-      RCLCPP_WARN(node_->get_logger(), "%s", e.what());
+      RCLCPP_WARN(node->get_logger(), "%s", e.what());
       return false;
     }
 
@@ -491,3 +524,9 @@ SocialLayer::reset()
 }
 
 }  // namespace nav2_costmap_2d
+
+// This is the macro allowing a nav2_gradient_costmap_plugin::GradientLayer class
+// to be registered in order to be dynamically loadable of base type nav2_costmap_2d::Layer.
+// Usually places in the end of cpp-file where the loadable class written.
+#include "pluginlib/class_list_macros.hpp"
+PLUGINLIB_EXPORT_CLASS(nav2_costmap_2d::SocialLayer, nav2_costmap_2d::Layer)

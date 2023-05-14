@@ -54,9 +54,9 @@ namespace social_nav2_actions
         rclcpp::QoS(1),
         options);
 
-    add_publisher_handle(goal_update_pub_);
-    add_publisher_handle(action_pub_);
-    add_publisher_handle(chrono_pub_);
+    // add_publisher_handle(goal_update_pub_);
+    // add_publisher_handle(action_pub_);
+    // add_publisher_handle(chrono_pub_);
 
     goal_update_pub_->on_activate();
     action_pub_->on_activate();
@@ -93,10 +93,10 @@ namespace social_nav2_actions
     request->names.push_back("social_layer.intimate_z_radius");
     request->names.push_back("social_layer.personal_z_radius");
 
-    params_future_ = params_client_->async_send_request(request);
+    params_future_ = params_client_->async_send_request(request).future.share();
 
     if (rclcpp::spin_until_future_complete(private_node_, params_future_) ==
-      rclcpp::executor::FutureReturnCode::SUCCESS)
+      rclcpp::FutureReturnCode::SUCCESS)
     {
       params_handle_ = params_future_.get();
     } else {
